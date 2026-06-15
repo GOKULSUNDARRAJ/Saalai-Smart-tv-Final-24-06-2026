@@ -1,0 +1,26 @@
+node_modules/
+dist/
+dist-ssr/
+.cache/
+*.local
+*.log
+*.log.*
+
+# Platform build outputs
+platforms/tizen/output/
+platforms/webos/output/
+platforms/androidtv/android/
+platforms/androidtv/.gradle/
+
+# IDE
+.vscode/
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# OS
+.DS_Store
+Thumbs.db

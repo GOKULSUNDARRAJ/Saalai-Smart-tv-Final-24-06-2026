@@ -1,0 +1,5 @@
+*.rar
+*.zip
+node_modules/
+dist/
+.vite/

@@ -1,0 +1,14 @@
+{
+  "appId": "com.example.tvapp",
+  "appName": "TV App",
+  "webDir": "dist/androidtv",
+  "server": {
+    "androidScheme": "https"
+  },
+  "android": {
+    "backgroundColor": "#0a0a0a",
+    "allowMixedContent": false,
+    "captureInput": true,
+    "webContentsDebuggingEnabled": false
+  }
+}

@@ -1,0 +1,16 @@
+{
+  "id": "com.example.tvapp",
+  "version": "1.0.0",
+  "vendor": "Your Company",
+  "type": "web",
+  "main": "index.html",
+  "title": "TV App",
+  "bgColor": "#0a0a0a",
+  "iconColor": "#e50914",
+  "splashBackground": "#0a0a0a",
+  "requiredPermissions": [
+    "audio.operation",
+    "media.operation",
+    "internet"
+  ]
+}
