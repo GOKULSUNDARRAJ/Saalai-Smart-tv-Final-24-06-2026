@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
+    "build:all": "npm run build:tizen && npm run build:webos && npm run build:roku && npm run build:androidtv",
     "build:tizen": "tsc -b && vite build --outDir dist/tizen --base ./ && node platforms/tizen/package.cjs",
     "build:webos": "tsc -b && vite build --outDir dist/webos && node platforms/webos/package.cjs",
     "build:roku": "tsc -b && vite build --outDir dist/roku",

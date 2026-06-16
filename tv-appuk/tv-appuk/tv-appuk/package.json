@@ -11,6 +11,7 @@
     "build:roku": "tsc -b && vite build --outDir dist/roku",
     "build:androidtv": "tsc -b && vite build --outDir dist/androidtv && npx cap sync android",
     "deploy:tizen": "node platforms/tizen/deploy.cjs",
+    "deploy:tizen:all": "node platforms/tizen/deploy.cjs",
     "preview": "vite preview",
     "typecheck": "tsc --noEmit",
     "lint": "eslint src --ext ts,tsx --report-unused-disable-directives --max-warnings 0",

@@ -215,10 +215,12 @@ export function TizenPlayerScreen() {
       const state = av.getState()
       if (state === 'NONE' || state === 'IDLE') return
       const posMs = av.getCurrentTime()
+      const durMs = av.getDuration()
       if (posMs > 0) {
         if (cur.movieId > 0) {
           tvStorage.setItem(`tizen_pos_${cur.movieId}`, String(posMs))
           tvStorage.setItem(`resume_pos_${cur.movieId}`, String(posMs))
+          if (durMs > 0) tvStorage.setItem(`episode_dur_${cur.movieId}`, String(durMs))
           updateStreamTime(cur.movieId, 1, posMs).catch(() => {})
         }
         if (cur.title) tvStorage.setItem(`tizen_pos_title_${cur.title}`, String(posMs))
@@ -464,6 +466,7 @@ export function TizenPlayerScreen() {
             if (posMs > 0 && c2.movieId > 0 && !c2.disableResumeSave) {
               tvStorage.setItem(`tizen_pos_${c2.movieId}`, String(posMs))
               tvStorage.setItem(`resume_pos_${c2.movieId}`, String(posMs))
+              try { const d2 = av2.getDuration(); if (d2 > 0) tvStorage.setItem(`episode_dur_${c2.movieId}`, String(d2)) } catch { }
               updateStreamTime(c2.movieId, 1, posMs).catch(() => {})
             }
           }

@@ -5,10 +5,10 @@
     "socketPort": "8498",
     "width": "1920",
     "isDebugMode": false,
-    "baseAppPath": "C:/Users/user/.zenflow/worktrees/want-to-develop-one-app-for-mult-3f2d552026/want-to-develop-one-app-for-mult-3f2d/tv-app/dist/tizen"
+    "baseAppPath": "C:/Users/user/.zenflow/worktrees/want-to-develop-one-app-for-mult-3f2d552026/want-to-develop-one-app-for-mult-3f2d/tv-appuk/tv-appuk/tv-appuk/dist/tizen"
   },
   "profileInfo": {
     "path": "C:/tizen-studio-data/profile/profiles.xml",
-    "name": "SaalaiTV2"
+    "name": "SaalaiTV3"
   }
 }

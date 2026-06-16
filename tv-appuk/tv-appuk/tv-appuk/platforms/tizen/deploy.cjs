@@ -2,9 +2,21 @@ const { execSync } = require('child_process')
 const path = require('path')
 const fs = require('fs')
 
-const tvIp = process.argv[2] || '192.168.0.252'
 const appId = 'SaalaiTV01.SaalaiTV'
-const profile = 'SaalaiTV2'
+
+const TV_LIST = [
+  { ip: '192.168.0.202', profile: 'SaalaiTV2' },
+  { ip: '192.168.0.203', profile: 'SaalaiTV3' },
+  { ip: '192.168.0.204', profile: 'SaalaiTV3' },
+]
+
+const targetIps = process.argv.slice(2)
+const tvs = targetIps.length > 0
+  ? targetIps.map(ip => {
+      const found = TV_LIST.find(t => t.ip === ip)
+      return found || { ip, profile: 'SaalaiTV2' }
+    })
+  : TV_LIST
 
 const TIZEN_CLI_CANDIDATES = [
   'C:\\tizen-studio\\tools\\ide\\bin\\tizen.bat',
@@ -28,34 +40,63 @@ const distDir = path.resolve(__dirname, '../../dist/tizen')
 const pkgDir = path.resolve(__dirname, '../../dist/tizen-pkg')
 fs.mkdirSync(pkgDir, { recursive: true })
 
-console.log('Packaging with profile:', profile)
-execSync(`"${tizenCli}" package -t wgt -s ${profile} -o "${pkgDir}" -- "${distDir}"`, { stdio: 'inherit' })
-
-const wgtSpaced = path.join(pkgDir, 'Saalai TV.wgt')
-const wgtFinal = path.join(pkgDir, 'SaalaiTV.wgt')
-if (fs.existsSync(wgtSpaced)) fs.copyFileSync(wgtSpaced, wgtFinal)
-
-if (!fs.existsSync(wgtFinal)) {
-  console.error('Package not found:', wgtFinal)
-  process.exit(1)
+function buildWgt(profile) {
+  console.log(`\nPackaging with profile: ${profile}`)
+  const wgtSpaced = path.join(pkgDir, 'Saalai TV.wgt')
+  const wgtFinal = path.join(pkgDir, 'SaalaiTV.wgt')
+  if (fs.existsSync(wgtSpaced)) fs.rmSync(wgtSpaced)
+  if (fs.existsSync(wgtFinal)) fs.rmSync(wgtFinal)
+  execSync(`"${tizenCli}" package -t wgt -s ${profile} -o "${pkgDir}" -- "${distDir}"`, { stdio: 'inherit' })
+  if (fs.existsSync(wgtSpaced)) fs.copyFileSync(wgtSpaced, wgtFinal)
+  if (!fs.existsSync(wgtFinal)) {
+    throw new Error(`Package not created for profile ${profile}`)
+  }
+  return wgtFinal
 }
 
-console.log('Connecting to TV at', tvIp)
-execSync(`"${sdbExe}" connect ${tvIp}`, { stdio: 'inherit' })
+function deployToTv(ip, profile) {
+  console.log(`\n${'='.repeat(50)}`)
+  console.log(`Deploying to TV: ${ip}  (profile: ${profile})`)
+  console.log('='.repeat(50))
 
-const devicesOut = execSync(`"${sdbExe}" devices`, { encoding: 'utf8' })
-const deviceLine = devicesOut.split('\n').find(l => l.includes(tvIp))
-if (!deviceLine) {
-  console.error('TV not found after connect. Is Developer Mode enabled?')
-  process.exit(1)
+  buildWgt(profile)
+
+  console.log(`Connecting to ${ip}...`)
+  execSync(`"${sdbExe}" connect ${ip}`, { stdio: 'inherit' })
+
+  const devicesOut = execSync(`"${sdbExe}" devices`, { encoding: 'utf8' })
+  const deviceLine = devicesOut.split('\n').find(l => l.includes(ip))
+  if (!deviceLine) {
+    throw new Error(`TV at ${ip} not found. Is Developer Mode enabled?`)
+  }
+  const serial = deviceLine.split(/\s+/)[0]
+  console.log(`Device serial: ${serial}`)
+
+  console.log('Installing...')
+  execSync(`"${tizenCli}" install -n SaalaiTV.wgt -s ${serial} -- "${pkgDir}"`, { stdio: 'inherit' })
+
+  console.log('Launching...')
+  execSync(`"${tizenCli}" run -p ${appId} -s ${serial}`, { stdio: 'inherit' })
+
+  console.log(`\nApp deployed and launched on ${ip}`)
 }
-const serial = deviceLine.split(/\s+/)[0]
-console.log('Device:', serial)
 
-console.log('Installing...')
-execSync(`"${tizenCli}" install -n SaalaiTV.wgt -s ${serial} -- "${pkgDir}"`, { stdio: 'inherit' })
+const results = []
+for (const tv of tvs) {
+  try {
+    deployToTv(tv.ip, tv.profile)
+    results.push({ ip: tv.ip, status: 'SUCCESS' })
+  } catch (err) {
+    console.error(`\nFailed to deploy to ${tv.ip}: ${err.message}`)
+    results.push({ ip: tv.ip, status: 'FAILED', error: err.message })
+  }
+}
 
-console.log('Launching...')
-execSync(`"${tizenCli}" run -p ${appId} -s ${serial}`, { stdio: 'inherit' })
-
-console.log('\nApp deployed and launched on Samsung TV.')
+console.log('\n' + '='.repeat(50))
+console.log('DEPLOYMENT SUMMARY')
+console.log('='.repeat(50))
+for (const r of results) {
+  console.log(`  ${r.ip}: ${r.status}${r.error ? ' - ' + r.error : ''}`)
+}
+const failed = results.filter(r => r.status === 'FAILED')
+if (failed.length > 0) process.exit(1)

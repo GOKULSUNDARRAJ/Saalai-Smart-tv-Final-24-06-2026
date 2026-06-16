@@ -3,15 +3,31 @@ import { useFocusable, FocusContext } from '@noriginmedia/norigin-spatial-naviga
 import { fetchTvShowEpisodeList } from '../api/tvShowsApi'
 import type { EpisodeDetail, EpisodeItem } from '../api/tvShowsApi'
 import { useAppStore } from '../store/appStore'
-import { playNative, shouldUseNativePlayer } from '../platform/nativeVideoPlayer'
+import { playNative, shouldUseNativePlayer, fetchAndSaveEpisodePosition } from '../platform/nativeVideoPlayer'
+import { tvStorage } from '../platform/storage'
 import type { PlaylistItem } from '../types/content'
 
 const EPISODE_COLS = 3
 
+interface ResumeData {
+  episodeId: number
+  episodeName: string
+  posMs: number
+}
+
+function formatResumeTime(posMs: number): string {
+  const totalSec = Math.floor(posMs / 1000)
+  const h = Math.floor(totalSec / 3600)
+  const m = Math.floor((totalSec % 3600) / 60)
+  const s = totalSec % 60
+  if (h > 0) return `${h}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`
+  return `${m}:${String(s).padStart(2, '0')}`
+}
+
 function EpisodeCard({
-  item, focusKey, onArrow, onSelect,
+  item, focusKey, onArrow, onSelect, isSelected, progressPct,
 }: {
-  item: EpisodeItem; focusKey: string; onArrow: (dir: string) => boolean; onSelect: () => void
+  item: EpisodeItem; focusKey: string; onArrow: (dir: string) => boolean; onSelect: () => void; isSelected?: boolean; progressPct?: number
 }) {
   const [imgError, setImgError] = useState(false)
   const domRef = useRef<HTMLDivElement | null>(null)
@@ -54,7 +70,7 @@ function EpisodeCard({
         flex: 1,
         aspectRatio: '16/8',
         borderRadius: 12,
-        outline: focused ? '3px solid #e50914' : '3px solid transparent',
+        outline: focused ? '3px solid #e50914' : isSelected ? '3px solid rgba(229,9,20,0.5)' : '3px solid transparent',
         outlineOffset: 3,
         transform: focused ? 'scale(1.06)' : 'scale(1)',
         transition: 'transform 0.15s, outline-color 0.12s',
@@ -96,6 +112,11 @@ function EpisodeCard({
             </p>
           ) : null}
         </div>
+        {progressPct != null && progressPct > 0 && (
+          <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: 4, background: 'rgba(255,255,255,0.2)', borderRadius: '0 0 12px 12px' }}>
+            <div style={{ height: '100%', width: `${Math.min(progressPct, 100)}%`, background: '#3b82f6', borderRadius: '0 0 0 12px' }} />
+          </div>
+        )}
       </div>
     </div>
   )
@@ -153,10 +174,13 @@ export function TvShowDetailScreen() {
   const [episodeDetail, setEpisodeDetail] = useState<EpisodeDetail | null>(null)
   const [episodes, setEpisodes] = useState<EpisodeItem[]>([])
   const [loading, setLoading] = useState(true)
+  const [loadingEpisodeDetail, setLoadingEpisodeDetail] = useState(false)
+  const [selectedEpisodeId, setSelectedEpisodeId] = useState<number | null>(null)
+  const [resumeData, setResumeData] = useState<ResumeData | null>(null)
+  const [progressVersion, setProgressVersion] = useState(0)
   const scrollRef = useRef<HTMLDivElement>(null)
 
   const { ref, focusKey, setFocus } = useFocusable({ focusKey: 'tvshowdetail-screen', trackChildren: true })
-
 
   const scrollToTop = useCallback(() => {
     scrollRef.current?.scrollTo({ top: 0, behavior: 'smooth' })
@@ -169,13 +193,36 @@ export function TvShowDetailScreen() {
     setEpisodeDetail(data.episodeDetails)
     setEpisodes(data.episodes)
     setLoading(false)
-    setTimeout(() => setFocus('tvshowdetail-play'), 100)
-  }, [setFocus])
+  }, [])
 
   useEffect(() => {
     if (!selectedTvShowId) return
     loadEpisodes(selectedTvShowId)
   }, [selectedTvShowId, loadEpisodes])
+
+  useEffect(() => {
+    setResumeData(null)
+    if (!selectedTvShowId || loading) return
+    const saved = tvStorage.getJSON<{ episodeId: number; episodeName: string }>(`tvshow_resume_${selectedTvShowId}`)
+    if (!saved) return
+    const posMs = parseInt(tvStorage.getItem(`resume_pos_${saved.episodeId}`) ?? '0') || 0
+    if (posMs > 10000) {
+      setResumeData({ episodeId: saved.episodeId, episodeName: saved.episodeName, posMs })
+    }
+  }, [selectedTvShowId, loading])
+
+  useEffect(() => {
+    if (loading) return
+    setTimeout(() => {
+      const saved = tvStorage.getJSON<{ episodeId: number; episodeName: string }>(`tvshow_resume_${selectedTvShowId}`)
+      const posMs = saved ? parseInt(tvStorage.getItem(`resume_pos_${saved.episodeId}`) ?? '0') || 0 : 0
+      if (saved && posMs > 10000) {
+        setFocus('tvshowdetail-resume')
+      } else {
+        setFocus('tvshowdetail-play')
+      }
+    }, 300)
+  }, [loading, selectedTvShowId, setFocus])
 
   const prevScreen = getPreviousScreen()
   const DETAIL_PARENT: Partial<Record<string, string>> = {
@@ -203,21 +250,67 @@ export function TvShowDetailScreen() {
   const buildPlaylist = useCallback((
     startDetail: EpisodeDetail,
     allEpisodes: EpisodeItem[],
+    nextDetail?: EpisodeDetail,
   ): { playlist: PlaylistItem[]; playlistIndex: number } | undefined => {
-    const playableEps = allEpisodes.filter(e => !!e.episodeURL)
-    if (playableEps.length === 0) return undefined
-    const startItem: PlaylistItem = { url: startDetail.episodeURL, title: startDetail.episodeName, movieId: startDetail.episodeId, thumbnailUrl: startDetail.episodeLogo }
-    const rest: PlaylistItem[] = playableEps
-      .filter(e => e.episodeId !== startDetail.episodeId)
+    if (!startDetail.episodeURL) return undefined
+    const currentIndex = allEpisodes.findIndex(e => e.episodeId === startDetail.episodeId)
+    const afterCurrent = currentIndex >= 0 ? allEpisodes.slice(currentIndex + 1) : []
+    const nextFromList: PlaylistItem[] = afterCurrent
+      .filter(e => !!e.episodeURL)
       .map(e => ({ url: e.episodeURL!, title: e.episodeName, movieId: e.episodeId, thumbnailUrl: e.episodeLogo }))
-    const playlist = [startItem, ...rest]
-    return playlist.length > 1 ? { playlist, playlistIndex: 0 } : undefined
+    const nextFromFetch: PlaylistItem[] =
+      nextDetail && nextDetail.episodeURL && !nextFromList.find(p => p.movieId === nextDetail.episodeId)
+        ? [{ url: nextDetail.episodeURL, title: nextDetail.episodeName, movieId: nextDetail.episodeId, thumbnailUrl: nextDetail.episodeLogo }]
+        : []
+    const rest = nextFromList.length > 0 ? nextFromList : nextFromFetch
+    if (rest.length === 0) return undefined
+    const startItem: PlaylistItem = { url: startDetail.episodeURL, title: startDetail.episodeName, movieId: startDetail.episodeId, thumbnailUrl: startDetail.episodeLogo }
+    return { playlist: [startItem, ...rest], playlistIndex: 0 }
   }, [])
+
+  const saveResumeEpisode = useCallback((ep: EpisodeDetail) => {
+    if (!selectedTvShowId) return
+    tvStorage.setJSON(`tvshow_resume_${selectedTvShowId}`, { episodeId: ep.episodeId, episodeName: ep.episodeName })
+  }, [selectedTvShowId])
 
   const handlePlay = useCallback(async () => {
     if (!episodeDetail) return
-    const pl = buildPlaylist(episodeDetail, episodes)
-    const launched = await playNative(episodeDetail.episodeURL, episodeDetail.episodeName, undefined, false, pl?.playlist, pl?.playlistIndex, episodeDetail.episodeId, true)
+    saveResumeEpisode(episodeDetail)
+    let pl = buildPlaylist(episodeDetail, episodes)
+    if (!pl && selectedTvShowId) {
+      const currentIndex = episodes.findIndex(e => e.episodeId === episodeDetail.episodeId)
+      const nextEp = currentIndex >= 0 ? episodes[currentIndex + 1] : null
+      if (nextEp) {
+        const nextData = await fetchTvShowEpisodeList(selectedTvShowId, nextEp.episodeId)
+        if (nextData.episodeDetails) {
+          pl = buildPlaylist(episodeDetail, episodes, nextData.episodeDetails)
+        }
+      }
+    }
+    const launched = await playNative(episodeDetail.episodeURL, episodeDetail.episodeName, undefined, false, pl?.playlist, pl?.playlistIndex, episodeDetail.episodeId, false, true)
+    if (launched && shouldUseNativePlayer()) {
+      const posMs = await fetchAndSaveEpisodePosition(episodeDetail.episodeId)
+      setProgressVersion(v => v + 1)
+      if (posMs > 10000) {
+        setResumeData({ episodeId: episodeDetail.episodeId, episodeName: episodeDetail.episodeName, posMs })
+        setTimeout(() => setFocus('tvshowdetail-resume'), 100)
+      } else if (posMs === 0 && selectedTvShowId) {
+        const currentIndex = episodes.findIndex(e => e.episodeId === episodeDetail.episodeId)
+        const nextEp = currentIndex >= 0 ? episodes[currentIndex + 1] : null
+        if (nextEp) {
+          const nextData = await fetchTvShowEpisodeList(selectedTvShowId, nextEp.episodeId)
+          if (nextData.episodeDetails) {
+            setEpisodeDetail(nextData.episodeDetails)
+            setSelectedEpisodeId(nextEp.episodeId)
+            setResumeData(null)
+          }
+        }
+        setTimeout(() => setFocus('tvshowdetail-play'), 100)
+      } else {
+        setTimeout(() => setFocus('tvshowdetail-play'), 100)
+      }
+      return
+    }
     if (!launched && !shouldUseNativePlayer()) {
       navigate('player', {
         id: `tvshow-${episodeDetail.episodeId}`,
@@ -231,20 +324,44 @@ export function TvShowDetailScreen() {
         year: new Date().getFullYear(),
         rating: '',
         type: 'episode' as const,
+        movieId: episodeDetail.episodeId,
         playlist: pl?.playlist,
         playlistIndex: pl?.playlistIndex,
       })
     }
-  }, [episodeDetail, navigate, episodes, buildPlaylist])
+  }, [episodeDetail, navigate, episodes, buildPlaylist, saveResumeEpisode, selectedTvShowId, setFocus])
 
-  const handleEpisodeSelect = useCallback(async (ep: EpisodeItem) => {
-    if (!selectedTvShowId) return
-    const data = await fetchTvShowEpisodeList(selectedTvShowId, ep.episodeId)
+  const handleResume = useCallback(async () => {
+    if (!resumeData || !selectedTvShowId) return
+    const data = await fetchTvShowEpisodeList(selectedTvShowId, resumeData.episodeId)
     const detail = data.episodeDetails
     if (!detail) return
+    saveResumeEpisode(detail)
     const allEps = episodes.length > 0 ? episodes : data.episodes
-    const pl = buildPlaylist(detail, allEps)
-    const launched = await playNative(detail.episodeURL, detail.episodeName, undefined, false, pl?.playlist, pl?.playlistIndex, detail.episodeId, true)
+    let pl = buildPlaylist(detail, allEps)
+    if (!pl && selectedTvShowId) {
+      const currentIndex = allEps.findIndex(e => e.episodeId === detail.episodeId)
+      const nextEp = currentIndex >= 0 ? allEps[currentIndex + 1] : null
+      if (nextEp) {
+        const nextData = await fetchTvShowEpisodeList(selectedTvShowId, nextEp.episodeId)
+        if (nextData.episodeDetails) {
+          pl = buildPlaylist(detail, allEps, nextData.episodeDetails)
+        }
+      }
+    }
+    const launched = await playNative(detail.episodeURL, detail.episodeName, resumeData.posMs, false, pl?.playlist, pl?.playlistIndex, detail.episodeId, false)
+    if (launched && shouldUseNativePlayer()) {
+      const posMs = await fetchAndSaveEpisodePosition(detail.episodeId)
+      setProgressVersion(v => v + 1)
+      if (posMs > 10000) {
+        setResumeData({ episodeId: detail.episodeId, episodeName: detail.episodeName, posMs })
+        setTimeout(() => setFocus('tvshowdetail-resume'), 100)
+      } else {
+        setResumeData(null)
+        setTimeout(() => setFocus('tvshowdetail-play'), 100)
+      }
+      return
+    }
     if (!launched && !shouldUseNativePlayer()) {
       navigate('player', {
         id: `tvshow-${detail.episodeId}`,
@@ -258,17 +375,38 @@ export function TvShowDetailScreen() {
         year: new Date().getFullYear(),
         rating: '',
         type: 'episode' as const,
+        movieId: detail.episodeId,
+        startPositionMs: resumeData.posMs,
         playlist: pl?.playlist,
         playlistIndex: pl?.playlistIndex,
       })
     }
-  }, [selectedTvShowId, navigate, episodes, buildPlaylist])
+  }, [resumeData, selectedTvShowId, episodes, buildPlaylist, navigate, saveResumeEpisode])
+
+  const handleEpisodeSelect = useCallback(async (ep: EpisodeItem) => {
+    if (!selectedTvShowId) return
+    setLoadingEpisodeDetail(true)
+    setSelectedEpisodeId(ep.episodeId)
+    const data = await fetchTvShowEpisodeList(selectedTvShowId, ep.episodeId)
+    const detail = data.episodeDetails
+    setLoadingEpisodeDetail(false)
+    if (!detail) return
+    setEpisodeDetail(detail)
+    const epPosMs = parseInt(tvStorage.getItem(`resume_pos_${ep.episodeId}`) ?? '0') || 0
+    if (epPosMs > 10000) {
+      setResumeData({ episodeId: ep.episodeId, episodeName: ep.episodeName, posMs: epPosMs })
+    } else {
+      setResumeData(null)
+    }
+    scrollRef.current?.scrollTo({ top: 0, behavior: 'smooth' })
+    setTimeout(() => setFocus(epPosMs > 10000 ? 'tvshowdetail-resume' : 'tvshowdetail-play'), 300)
+  }, [selectedTvShowId, setFocus])
 
   const rows = Math.ceil(episodes.length / EPISODE_COLS)
 
   const episodeArrow = useCallback((row: number, col: number) => (dir: string): boolean => {
     if (dir === 'up') {
-      if (row === 0) { scrollToTop(); setFocus('tvshowdetail-play'); return false }
+      if (row === 0) { scrollToTop(); setFocus(resumeData ? 'tvshowdetail-resume' : 'tvshowdetail-play'); return false }
       setFocus(`tvshowdetail-ep-${row - 1}-${col}`); return false
     }
     if (dir === 'down') {
@@ -285,7 +423,7 @@ export function TvShowDetailScreen() {
       return false
     }
     return true
-  }, [rows, episodes, setFocus, scrollToTop])
+  }, [rows, episodes, setFocus, scrollToTop, resumeData])
 
   if (loading) {
     return (
@@ -320,11 +458,16 @@ export function TvShowDetailScreen() {
             <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to right, #0a0a0a 0%, rgba(10,10,10,0.88) 55%, rgba(10,10,10,0.5) 100%)' }} />
             <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to bottom, transparent 50%, #0a0a0a 100%)' }} />
 
+            {loadingEpisodeDetail && (
+              <div style={{ position: 'absolute', inset: 0, zIndex: 10, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(10,10,10,0.6)' }}>
+                <div style={{ color: 'rgba(255,255,255,0.6)', fontSize: 14 }}>Loading…</div>
+              </div>
+            )}
             <div style={{ position: 'relative', zIndex: 2, display: 'flex', alignItems: 'flex-start', minHeight: '30vh', padding: '20px 5vw 20px', gap: 24 }}>
               <img
                 src={episodeDetail.episodeLogo}
                 alt={episodeDetail.episodeName}
-                style={{ width: 200, flexShrink: 0, borderRadius: 10, boxShadow: '0 8px 32px rgba(0,0,0,0.6)', objectFit: 'cover', aspectRatio: '16/9' }}
+                style={{ width: 200, flexShrink: 0, borderRadius: 10, boxShadow: '0 8px 32px rgba(0,0,0,0.6)', objectFit: 'cover', aspectRatio: '16/9', opacity: loadingEpisodeDetail ? 0.5 : 1, transition: 'opacity 0.2s' }}
               />
 
               <div style={{ flex: 1, paddingTop: 4 }}>
@@ -348,15 +491,47 @@ export function TvShowDetailScreen() {
                   <div style={{ marginBottom: 14 }} />
                 )}
 
+                {resumeData && (
+                  <div style={{ marginBottom: 8 }}>
+                    <span style={{ color: 'rgba(255,255,255,0.45)', fontSize: 11 }}>
+                      Last watched: {resumeData.episodeName} · {formatResumeTime(resumeData.posMs)}
+                    </span>
+                  </div>
+                )}
+
                 <div style={{ display: 'flex', gap: 12 }}>
+                  {resumeData && (
+                    <ActionButton
+                      focusKey="tvshowdetail-resume"
+                      primary
+                      onPress={handleResume}
+                      scrollToTop={scrollToTop}
+                      onUp={handleUpToNav}
+                      onArrow={(dir) => {
+                        if (dir === 'right') { setFocus('tvshowdetail-play'); return false }
+                        if (dir === 'down') {
+                          if (episodes.length > 0) { setFocus('tvshowdetail-ep-0-0'); return false }
+                          return false
+                        }
+                        return false
+                      }}
+                    >
+                      ▶ Resume · {formatResumeTime(resumeData.posMs)}
+                    </ActionButton>
+                  )}
                   <ActionButton
                     focusKey="tvshowdetail-play"
-                    primary
+                    primary={!resumeData}
                     onPress={handlePlay}
                     scrollToTop={scrollToTop}
-                    onUp={() => {}}
+                    onUp={handleUpToNav}
                     onArrow={(dir) => {
-                      if (dir === 'right') { setFocus('tvshowdetail-back'); return false }
+                      if (resumeData) {
+                        if (dir === 'left') { setFocus('tvshowdetail-resume'); return false }
+                        if (dir === 'right') { setFocus('tvshowdetail-back'); return false }
+                      } else {
+                        if (dir === 'right') { setFocus('tvshowdetail-back'); return false }
+                      }
                       if (dir === 'down') {
                         if (episodes.length > 0) { setFocus('tvshowdetail-ep-0-0'); return false }
                         return false
@@ -370,7 +545,7 @@ export function TvShowDetailScreen() {
                     focusKey="tvshowdetail-back"
                     onPress={handleBack}
                     scrollToTop={scrollToTop}
-                    onUp={() => {}}
+                    onUp={handleUpToNav}
                     onArrow={(dir) => {
                       if (dir === 'left') { setFocus('tvshowdetail-play'); return false }
                       if (dir === 'down') {
@@ -393,16 +568,23 @@ export function TvShowDetailScreen() {
               {Array.from({ length: rows }).map((_, rowIdx) => {
                 const rowItems = episodes.slice(rowIdx * EPISODE_COLS, (rowIdx + 1) * EPISODE_COLS)
                 return (
-                  <div key={rowIdx} style={{ display: 'flex', gap: 12, marginBottom: 12 }}>
-                    {rowItems.map((ep, colIdx) => (
-                      <EpisodeCard
-                        key={ep.episodeId}
-                        item={ep}
-                        focusKey={`tvshowdetail-ep-${rowIdx}-${colIdx}`}
-                        onArrow={episodeArrow(rowIdx, colIdx)}
-                        onSelect={() => handleEpisodeSelect(ep)}
-                      />
-                    ))}
+                  <div key={`${rowIdx}-${progressVersion}`} style={{ display: 'flex', gap: 12, marginBottom: 12 }}>
+                    {rowItems.map((ep, colIdx) => {
+                      const posMs = parseInt(tvStorage.getItem(`resume_pos_${ep.episodeId}`) ?? '0') || 0
+                      const durMs = parseInt(tvStorage.getItem(`episode_dur_${ep.episodeId}`) ?? '0') || 3600000
+                      const progressPct = posMs > 0 ? Math.round((posMs / durMs) * 100) : 0
+                      return (
+                        <EpisodeCard
+                          key={ep.episodeId}
+                          item={ep}
+                          focusKey={`tvshowdetail-ep-${rowIdx}-${colIdx}`}
+                          onArrow={episodeArrow(rowIdx, colIdx)}
+                          onSelect={() => handleEpisodeSelect(ep)}
+                          isSelected={selectedEpisodeId === ep.episodeId}
+                          progressPct={progressPct}
+                        />
+                      )
+                    })}
                     {rowItems.length < EPISODE_COLS && Array.from({ length: EPISODE_COLS - rowItems.length }).map((_, i) => (
                       <div key={`spacer-${i}`} style={{ flex: 1, aspectRatio: '16/8' }} />
                     ))}

@@ -117,9 +117,11 @@ public class VideoPlayerPlugin extends Plugin {
         if (movieId == 0) movieId = call.getInt("movieId", 0);
         SharedPreferences prefs = getContext().getSharedPreferences("SaalaiTVResume", Context.MODE_PRIVATE);
         long positionMs = prefs.getLong("pos_" + movieId, 0);
-        Log.d("VideoPlayerPlugin", "getResumePosition: movieId=" + movieId + " positionMs=" + positionMs);
+        long durationMs = prefs.getLong("dur_" + movieId, 0);
+        Log.d("VideoPlayerPlugin", "getResumePosition: movieId=" + movieId + " positionMs=" + positionMs + " durationMs=" + durationMs);
         JSObject ret = new JSObject();
         ret.put("positionMs", positionMs);
+        ret.put("durationMs", durationMs);
         call.resolve(ret);
     }
 

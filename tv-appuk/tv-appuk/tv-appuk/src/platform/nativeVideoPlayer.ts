@@ -9,7 +9,7 @@ const FALLBACK_URL = 'https://www.w3schools.com/html/mov_bbb.mp4'
 interface VideoPlayerPlugin {
   play(options: { url: string; title?: string; fallbackUrl?: string; startPositionMs?: number; movieId?: number; forceFromBeginning?: boolean; isLive?: boolean; disableResumeSave?: boolean; playlistJson?: string; playlistIndex?: number; relatedJson?: string }): Promise<{ positionMs: number; blocked?: boolean; navigateToMovieId?: number }>
   endPlay(): Promise<void>
-  getResumePosition(options: { movieId: number }): Promise<{ positionMs: number }>
+  getResumePosition(options: { movieId: number }): Promise<{ positionMs: number; durationMs?: number }>
   getResumePositionByTitle(options: { title: string }): Promise<{ positionMs: number }>
 }
 
@@ -37,9 +37,9 @@ export function shouldUseNativePlayer(): boolean {
   }
 }
 
-export async function playNative(url: string, title?: string, startPositionMs?: number, isLive?: boolean, playlist?: PlaylistItem[], playlistIndex?: number, movieId?: number, disableResumeSave?: boolean): Promise<boolean> {
+export async function playNative(url: string, title?: string, startPositionMs?: number, isLive?: boolean, playlist?: PlaylistItem[], playlistIndex?: number, movieId?: number, disableResumeSave?: boolean, forceFromBeginning?: boolean): Promise<boolean> {
   if (shouldUseTizenPlayer()) {
-    useAppStore.getState().navigateToTizenPlayer({ url, title: title ?? '', movieId: movieId ?? 0, startPositionMs: startPositionMs ?? 0, forceFromBeginning: false, isLive: isLive ?? false, disableResumeSave: disableResumeSave ?? false, playlist, playlistIndex })
+    useAppStore.getState().navigateToTizenPlayer({ url, title: title ?? '', movieId: movieId ?? 0, startPositionMs: startPositionMs ?? 0, forceFromBeginning: forceFromBeginning ?? false, isLive: isLive ?? false, disableResumeSave: disableResumeSave ?? false, playlist, playlistIndex })
     return true
   }
   if (!shouldUseNativePlayer()) return false
@@ -49,7 +49,7 @@ export async function playNative(url: string, title?: string, startPositionMs?: 
   try {
     const fallbackUrl = url !== FALLBACK_URL ? FALLBACK_URL : ''
     const playlistJson = playlist && playlist.length > 1 ? JSON.stringify(playlist) : undefined
-    const result = await VideoPlayer.play({ url, title: title ?? '', fallbackUrl, startPositionMs: startPositionMs ?? 0, movieId: movieId ?? 0, isLive: isLive ?? false, disableResumeSave: disableResumeSave ?? false, playlistJson, playlistIndex: playlistIndex ?? 0 })
+    const result = await VideoPlayer.play({ url, title: title ?? '', fallbackUrl, startPositionMs: startPositionMs ?? 0, movieId: movieId ?? 0, isLive: isLive ?? false, disableResumeSave: disableResumeSave ?? false, forceFromBeginning: forceFromBeginning ?? false, playlistJson, playlistIndex: playlistIndex ?? 0 })
     if (result?.blocked) {
       isNativePlaying = false
       lastPlayEndMs = Date.now()
@@ -129,6 +129,24 @@ export async function playNativeMovie(
     isNativePlaying = false
     lastPlayEndMs = Date.now()
     return false
+  }
+}
+
+export async function fetchAndSaveEpisodePosition(movieId: number): Promise<number> {
+  if (!shouldUseNativePlayer()) return 0
+  try {
+    const res = await VideoPlayer.getResumePosition({ movieId })
+    const posMs = res?.positionMs ?? 0
+    const durMs = res?.durationMs ?? 0
+    if (posMs > 0) {
+      tvStorage.setItem(`resume_pos_${movieId}`, String(posMs))
+    }
+    if (durMs > 0) {
+      tvStorage.setItem(`episode_dur_${movieId}`, String(durMs))
+    }
+    return posMs
+  } catch {
+    return 0
   }
 }
 

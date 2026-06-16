@@ -346,9 +346,11 @@ export function MoviesScreen() {
     }
   }, [])
 
-  const loadMovies = useCallback(async (catId: number, reset: boolean) => {
+  const loadMovies = useCallback(async (catId: number, reset: boolean, passedCatName?: string) => {
     const preloaded = dashboardItemsRef.current[catId]
-    if (reset && preloaded && preloaded.length > 0) {
+    const catName = passedCatName ?? stateRef.current.categories.find(c => c.id === catId)?.name ?? ''
+    const isContinue = catName.toLowerCase().includes('continue')
+    if (reset && preloaded && preloaded.length > 0 && isContinue) {
       setLoadingMovies(true)
       setMovies([])
       setHasMore(false)
@@ -380,10 +382,14 @@ export function MoviesScreen() {
 
   useEffect(() => {
     if (initialCache) {
-      setTimeout(() => {
-        setFocus(initialCache.lastFocusKey)
-        if (scrollRef.current) scrollRef.current.scrollTop = initialCache.scrollTop
-      }, 60)
+      const cachedCatName = initialCache.categories[initialCache.selectedGenre]?.name ?? ''
+      const cachedIsContinue = cachedCatName.toLowerCase().includes('continue')
+      if (!cachedIsContinue) {
+        setTimeout(() => {
+          setFocus(initialCache.lastFocusKey)
+          if (scrollRef.current) scrollRef.current.scrollTop = initialCache.scrollTop
+        }, 60)
+      }
       fetchMovieDashboard().then((data) => {
         dashboardItemsRef.current = data.channelsByCategory
         setCategories(data.categories)
@@ -392,6 +398,7 @@ export function MoviesScreen() {
         if (currentCat?.name.toLowerCase().includes('continue')) {
           const fresh = data.channelsByCategory[s.selectedCatId] ?? []
           setMovies(fresh)
+          setTimeout(() => setFocus('movie-card-0-0'), 150)
         }
       })
       return
@@ -401,32 +408,32 @@ export function MoviesScreen() {
       setCategories(data.categories)
       setLoadingCats(false)
       if (data.categories.length > 0) {
-        const firstCatId = data.categories[0].id
-        setSelectedCatId(firstCatId)
-        loadMovies(firstCatId, true)
+        const firstCat = data.categories[0]
+        setSelectedCatId(firstCat.id)
+        loadMovies(firstCat.id, true, firstCat.name)
       }
       setTimeout(() => setFocus('movies-cat-0'), 100)
     })
   }, [setFocus, loadMovies, initialCache])
 
-  const handleSelectCategory = useCallback((i: number, catId: number) => {
+  const handleSelectCategory = useCallback((i: number, catId: number, catName: string) => {
     setSelectedGenre(i)
     setSelectedCatId(catId)
     pageRef.current = 0
     if (scrollRef.current) scrollRef.current.scrollTop = 0
-    loadMovies(catId, true)
+    loadMovies(catId, true, catName)
     setTimeout(() => setFocus('movie-card-0-0'), 500)
   }, [loadMovies, setFocus])
 
   useEffect(() => {
     if (categories.length > 0) {
-      const defaultCatId = categories[0].id
+      const defaultCat = categories[0]
       _resetToAllFn = () => {
         setSelectedGenre(0)
-        setSelectedCatId(defaultCatId)
+        setSelectedCatId(defaultCat.id)
         pageRef.current = 0
         if (scrollRef.current) scrollRef.current.scrollTop = 0
-        loadMovies(defaultCatId, true)
+        loadMovies(defaultCat.id, true, defaultCat.name)
       }
     } else {
       _resetToAllFn = null
@@ -522,7 +529,7 @@ export function MoviesScreen() {
                 index={i}
                 total={categories.length}
                 isSelected={selectedGenre === i}
-                onSelect={() => handleSelectCategory(i, cat.id)}
+                onSelect={() => handleSelectCategory(i, cat.id, cat.name)}
                 onUp={() => setFocus('nav-movies')}
                 onDown={() => { if (movies.length > 0) setFocus('movie-card-0-0') }}
                 onFocused={() => notifyMoviesFocusLevel('pill', i)}

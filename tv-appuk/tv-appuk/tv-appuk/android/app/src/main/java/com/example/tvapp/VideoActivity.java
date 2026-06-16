@@ -473,11 +473,14 @@ public class VideoActivity extends Activity {
         Log.d(TAG, "finish: positionMs=" + positionMs + " | movieId=" + movieId + " | seekAttempts=" + seekAttempts + " | startPositionMs=" + startPositionMs + " | videoEndedNaturally=" + videoEndedNaturally);
         VideoPlayerPlugin.lastVideoPositionMs = positionMs;
         if (positionMs > 0 && !videoEndedNaturally && !disableResumeSave) {
+            long durationMs = (exoPlayer != null) ? exoPlayer.getDuration() : 0;
+            if (durationMs < 0) durationMs = 0;
             android.content.SharedPreferences prefs = getSharedPreferences("SaalaiTVResume", android.content.Context.MODE_PRIVATE);
             android.content.SharedPreferences.Editor editor = prefs.edit();
             if (movieId > 0) {
                 editor.putLong("pos_" + movieId, positionMs);
-                Log.d(TAG, "finish: saved positionMs=" + positionMs + " by movieId=" + movieId);
+                if (durationMs > 0) editor.putLong("dur_" + movieId, durationMs);
+                Log.d(TAG, "finish: saved positionMs=" + positionMs + " durationMs=" + durationMs + " by movieId=" + movieId);
             }
             if (!videoTitle.isEmpty()) {
                 editor.putLong("pos_title_" + videoTitle, positionMs);
