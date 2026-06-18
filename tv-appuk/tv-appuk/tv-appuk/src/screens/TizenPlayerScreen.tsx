@@ -222,6 +222,14 @@ export function TizenPlayerScreen() {
           tvStorage.setItem(`resume_pos_${cur.movieId}`, String(posMs))
           if (durMs > 0) tvStorage.setItem(`episode_dur_${cur.movieId}`, String(durMs))
           updateStreamTime(cur.movieId, 1, posMs).catch(() => {})
+
+          const selectedTvShowId = useAppStore.getState().selectedTvShowId
+          if (selectedTvShowId) {
+            tvStorage.setJSON(`tvshow_resume_${selectedTvShowId}`, { episodeId: cur.movieId, episodeName: cur.title })
+          }
+        } else if (cur.url) {
+          tvStorage.setItem(`resume_pos_${cur.url}`, String(posMs))
+          if (durMs > 0) tvStorage.setItem(`resume_dur_${cur.url}`, String(durMs))
         }
         if (cur.title) tvStorage.setItem(`tizen_pos_title_${cur.title}`, String(posMs))
       }
@@ -237,6 +245,8 @@ export function TizenPlayerScreen() {
       if (cur.movieId > 0) {
         tvStorage.removeItem(`tizen_pos_${cur.movieId}`)
         tvStorage.removeItem(`resume_pos_${cur.movieId}`)
+      } else if (cur.url) {
+        tvStorage.removeItem(`resume_pos_${cur.url}`)
       }
       if (cur.title) tvStorage.removeItem(`tizen_pos_title_${cur.title}`)
     } catch { }
@@ -325,6 +335,15 @@ export function TizenPlayerScreen() {
     const nextIndex = cur.playlistIndex + 1
     const nextItem = cur.playlist[nextIndex]
     if (!nextItem) return
+
+    savePosition()
+    
+    // Save the next episode immediately as the last watched/resume episode
+    const selectedTvShowId = useAppStore.getState().selectedTvShowId
+    if (selectedTvShowId && nextItem.movieId) {
+      tvStorage.setJSON(`tvshow_resume_${selectedTvShowId}`, { episodeId: nextItem.movieId, episodeName: nextItem.title })
+    }
+
     finishedRef.current = false
     setIsBuffering(true)
     setIsPlaying(false)
@@ -849,11 +868,11 @@ export function TizenPlayerScreen() {
             {Array.from({ length: Math.ceil(relatedMovies.length / 2) }).map((_, rowIdx) => {
               const rowMovies = relatedMovies.slice(rowIdx * 2, (rowIdx + 1) * 2)
               return (
-                <div key={rowIdx} ref={(el) => { mltRowRefs.current[rowIdx] = el }} style={{ display: 'flex', gap: 8, marginBottom: 8 }}>
+                <div key={rowIdx} ref={(el) => { mltRowRefs.current[rowIdx] = el }} style={{ display: 'flex', marginBottom: 8 }}>
                   {rowMovies.map((movie, colIdx) => {
                     const idx = rowIdx * 2 + colIdx
                     return (
-                      <div key={movie.id} style={{ flex: 1 }}>
+                      <div key={movie.id} style={{ flex: 1, marginRight: colIdx === 0 ? 8 : 0 }}>
                         <div
                           ref={(el) => { mltCardRefs.current[idx] = el }}
                           onClick={() => {
@@ -870,7 +889,7 @@ export function TizenPlayerScreen() {
                             height: 0,
                             borderRadius: 8,
                             overflow: 'hidden',
-                            boxShadow: mltFocusIdx === idx ? '0 0 0 3px #e50914' : 'none',
+                            boxShadow: 'none',
                             background: '#1a1a1a',
                             cursor: 'pointer',
                           }}
@@ -900,3 +919,4 @@ export function TizenPlayerScreen() {
     </div>
   )
 }
+

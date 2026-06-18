@@ -243,9 +243,15 @@ export function RadioPlayerScreen() {
     setLoading(true)
     fetchRadioDetail(selectedRadioChannelId).then((data) => {
       setDetail(data)
-      if (data) setCurrent(data.channelDetails)
-      setLoading(false)
-      setTimeout(() => setFocus('radioplayer-station-0'), 150)
+      if (data) {
+        setCurrent(data.channelDetails)
+        const activeIdx = data.radioList.findIndex(s => s.channelId === data.channelDetails.channelId)
+        const focusIdx = activeIdx >= 0 ? activeIdx : 0
+        setLoading(false)
+        setTimeout(() => setFocus(`radioplayer-station-${focusIdx}`), 150)
+      } else {
+        setLoading(false)
+      }
     })
   }, [selectedRadioChannelId, setFocus])
 
@@ -395,22 +401,37 @@ export function RadioPlayerScreen() {
             style={{ flex: 1, overflowY: 'auto', overflowX: 'hidden', padding: '0 clamp(16px,4vw,48px) 24px' }}
             className="scrollbar-hide"
           >
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: 8 }}>
-              {stationList.map((station, idx) => (
-                <StationItem
-                  key={station.channelId}
-                  item={station}
-                  focusKey={`radioplayer-station-${idx}`}
-                  idx={idx}
-                  totalCount={stationList.length}
-                  onSelect={() => switchStation(station)}
-                  isActive={current.channelId === station.channelId}
-                  playing={current.channelId === station.channelId ? playing : undefined}
-                  buffering={current.channelId === station.channelId ? buffering : undefined}
-                  onToggle={current.channelId === station.channelId ? togglePlay : undefined}
-                />
-              ))}
-            </div>
+            {Array.from({ length: Math.ceil(stationList.length / GRID_COLS) }).map((_, rowIdx) => {
+              const rowItems = stationList.slice(rowIdx * GRID_COLS, (rowIdx + 1) * GRID_COLS)
+              return (
+                <div key={rowIdx} style={{ display: 'flex', marginBottom: 8 }}>
+                  {rowItems.map((station, colIdx) => {
+                    const idx = rowIdx * GRID_COLS + colIdx
+                    return (
+                      <div key={station.channelId} style={{ flex: 1, marginRight: colIdx < GRID_COLS - 1 ? 8 : 0 }}>
+                        <StationItem
+                          item={station}
+                          focusKey={`radioplayer-station-${idx}`}
+                          idx={idx}
+                          totalCount={stationList.length}
+                          onSelect={() => switchStation(station)}
+                          isActive={current.channelId === station.channelId}
+                          playing={current.channelId === station.channelId ? playing : undefined}
+                          buffering={current.channelId === station.channelId ? buffering : undefined}
+                          onToggle={current.channelId === station.channelId ? togglePlay : undefined}
+                        />
+                      </div>
+                    )
+                  })}
+                  {rowItems.length < GRID_COLS && Array.from({ length: GRID_COLS - rowItems.length }).map((_, i) => {
+                    const colIdx = rowItems.length + i
+                    return (
+                      <div key={`spacer-${i}`} style={{ flex: 1, marginRight: colIdx < GRID_COLS - 1 ? 8 : 0 }} />
+                    )
+                  })}
+                </div>
+              )
+            })}
           </div>
         </div>
       </div>

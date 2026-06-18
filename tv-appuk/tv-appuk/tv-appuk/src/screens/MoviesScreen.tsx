@@ -36,6 +36,7 @@ interface MoviesCache {
   scrollTop: number
   lastFocusKey: string
   dashboardItems: Record<number, MovieItem[]>
+  lastClickedMovieId: number | null
 }
 
 let _cache: MoviesCache | null = null
@@ -119,7 +120,7 @@ function GenrePill({
 function MovieCard({
   item, focusKey, onArrow, onSelect, onFocused,
 }: {
-  item: MovieItem; focusKey: string; onArrow: (dir: string) => boolean; onSelect: () => void; onFocused: () => void
+  item: MovieItem; focusKey: string; onArrow: (dir: string) => boolean; onSelect: () => void; onFocused: (rect?: DOMRect) => void
 }) {
   const [imgError, setImgError] = useState(false)
   const domRef = useRef<HTMLDivElement | null>(null)
@@ -127,7 +128,10 @@ function MovieCard({
     focusKey,
     onEnterPress: onSelect,
     onArrowPress: onArrow,
-    onFocus: onFocused,
+    onFocus: () => {
+      if (domRef.current) onFocused(domRef.current.getBoundingClientRect())
+      else onFocused()
+    },
   })
   const mergedRef = useCallback((el: HTMLDivElement | null) => {
     domRef.current = el
@@ -147,7 +151,7 @@ function MovieCard({
     const pRect = parent.getBoundingClientRect()
     const eRect = domRef.current.getBoundingClientRect()
     const safeBottom = pRect.bottom - 64
-    const safeTop = pRect.top + 8
+    const safeTop = pRect.top + 64
     if (eRect.top < safeTop) {
       parent.scrollTop -= safeTop - eRect.top + 8
     } else if (eRect.bottom > safeBottom) {
@@ -192,17 +196,6 @@ function MovieCard({
           </span>
         </div>
       )}
-      <div style={{
-        position: 'absolute', bottom: 0, left: 0, right: 0,
-        background: 'linear-gradient(to top, rgba(0,0,0,0.9) 0%, transparent 100%)',
-        padding: '18px 6px 6px',
-        opacity: focused ? 1 : 0.8,
-        transition: 'opacity 0.15s',
-      }}>
-        <p style={{ color: '#fff', fontSize: 10, fontWeight: 600, textAlign: 'center', margin: 0, overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>
-          {item.name}
-        </p>
-      </div>
     </div>
   )
 }
@@ -210,7 +203,7 @@ function MovieCard({
 function ContinueCard({
   item, focusKey, onArrow, onSelect, onFocused,
 }: {
-  item: MovieItem; focusKey: string; onArrow: (dir: string) => boolean; onSelect: () => void; onFocused: () => void
+  item: MovieItem; focusKey: string; onArrow: (dir: string) => boolean; onSelect: () => void; onFocused: (rect?: DOMRect) => void
 }) {
   const [imgError, setImgError] = useState(false)
   const domRef = useRef<HTMLDivElement | null>(null)
@@ -218,7 +211,10 @@ function ContinueCard({
     focusKey,
     onEnterPress: onSelect,
     onArrowPress: onArrow,
-    onFocus: onFocused,
+    onFocus: () => {
+      if (domRef.current) onFocused(domRef.current.getBoundingClientRect())
+      else onFocused()
+    },
   })
   const mergedRef = useCallback((el: HTMLDivElement | null) => {
     domRef.current = el
@@ -238,7 +234,7 @@ function ContinueCard({
     const pRect = parent.getBoundingClientRect()
     const eRect = domRef.current.getBoundingClientRect()
     const safeBottom = pRect.bottom - 64
-    const safeTop = pRect.top + 8
+    const safeTop = pRect.top + 64
     if (eRect.top < safeTop) {
       parent.scrollTop -= safeTop - eRect.top + 8
     } else if (eRect.bottom > safeBottom) {
@@ -308,6 +304,177 @@ function ContinueCard({
   )
 }
 
+function ViewMoreCard({
+  rowIdx, colIdx, isContinue, onArrow, onSelect, onFocused,
+}: {
+  rowIdx: number; colIdx: number; isContinue: boolean; onArrow: (dir: string) => boolean; onSelect: () => void; onFocused: (rect?: DOMRect) => void
+}) {
+  const domRef = useRef<HTMLDivElement | null>(null)
+  const { ref, focused } = useFocusable({
+    focusKey: `movie-dash-${rowIdx}-${colIdx}`,
+    onEnterPress: onSelect,
+    onArrowPress: onArrow,
+    onFocus: () => {
+      if (domRef.current) onFocused(domRef.current.getBoundingClientRect())
+      else onFocused()
+    },
+  })
+  const mergedRef = useCallback((el: HTMLDivElement | null) => {
+    domRef.current = el
+    const r = ref as unknown
+    if (typeof r === 'function') (r as (e: HTMLDivElement | null) => void)(el)
+    else if (r && typeof r === 'object') (r as { current: HTMLDivElement | null }).current = el
+  }, [ref])
+
+  return (
+    <div
+      ref={mergedRef}
+      onClick={onSelect}
+      style={{
+        flexShrink: 0,
+        width: isContinue ? 240 : 160,
+        aspectRatio: isContinue ? '16/9' : '2/3',
+        borderRadius: 12,
+        overflow: 'hidden',
+        position: 'relative',
+        border: `2px solid ${focused ? '#e50914' : 'rgba(255,255,255,0.18)'}`,
+        background: focused ? 'rgba(229,9,20,0.15)' : 'rgba(255,255,255,0.05)',
+        color: focused ? '#fff' : 'rgba(255,255,255,0.55)',
+        cursor: 'pointer', outline: 'none',
+        transform: focused ? 'scale(1.06)' : 'scale(1)',
+        transition: 'all 0.15s',
+        zIndex: focused ? 10 : 1,
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: 10,
+      }}
+    >
+      <svg width="30" height="30" viewBox="0 0 24 24" fill="none">
+        <path d="M9 18l6-6-6-6" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
+      </svg>
+      <span style={{ fontSize: 12, fontWeight: 700, letterSpacing: 0.8, textTransform: 'uppercase' }}>View More</span>
+    </div>
+  )
+}
+
+function MovieDashboardRow({
+  category, items, rowIdx, totalRows, onSelect, onFocused, onViewMore
+}: {
+  category: MovieCategory; items: MovieItem[]; rowIdx: number; totalRows: number; onSelect: (id: number, focusKey: string) => void; onFocused: () => void; onViewMore: () => void
+}) {
+  const isContinue = category.name.toLowerCase().includes('continue')
+  const horizontalScrollRef = useRef<HTMLDivElement>(null)
+
+  const { ref: rowRef, focusKey: rowFocusKey, focused, hasFocusedChild, setFocus } = useFocusable({
+    focusKey: `movie-dash-row-${rowIdx}`,
+    trackChildren: true,
+  })
+
+  const isRowFocused = focused || hasFocusedChild
+
+  const handleFocus = useCallback((item: MovieItem | null, colIdx: number, eRect?: DOMRect) => {
+    onFocused()
+    const container = horizontalScrollRef.current
+    if (!container || !eRect) return
+    const containerRect = container.getBoundingClientRect()
+    const absoluteLeft = eRect.left - containerRect.left + container.scrollLeft
+    const absoluteRight = absoluteLeft + eRect.width
+    const leftPadding = window.innerWidth * 0.05
+    const rightPadding = window.innerWidth * 0.05
+    if (eRect.right > containerRect.right) {
+      container.scrollTo({ left: Math.max(0, absoluteRight - containerRect.width + rightPadding), behavior: 'smooth' })
+    } else if (eRect.left < containerRect.left) {
+      container.scrollTo({ left: Math.max(0, absoluteLeft - leftPadding), behavior: 'smooth' })
+    }
+  }, [onFocused])
+
+  return (
+    <FocusContext.Provider value={rowFocusKey}>
+      <div 
+        ref={rowRef}
+        style={{ marginBottom: 24 }}
+      >
+        <h2 style={{ 
+          fontSize: isRowFocused ? 24 : 15, 
+          fontWeight: isRowFocused ? 800 : 600, 
+          letterSpacing: 0.3,
+          color: isRowFocused ? '#fff' : 'rgba(255,255,255,0.45)', 
+          marginBottom: 10, 
+          paddingLeft: '5vw',
+          transition: 'all 0.2s ease-in-out',
+        }}>
+          {category.name}
+        </h2>
+        <div
+        ref={horizontalScrollRef}
+        className="scrollbar-hide"
+        style={{ display: 'flex', overflowX: 'auto', paddingLeft: '5vw', paddingRight: '5vw', paddingTop: 16, paddingBottom: 16 }}
+      >
+        {items.map((item, colIdx) => {
+          const fk = `movie-dash-${rowIdx}-${colIdx}`
+          const onArrow = (dir: string) => {
+            if (dir === 'up') {
+              if (rowIdx === 0) { setFocus('movies-cat-0'); return false }
+              setFocus(`movie-dash-${rowIdx - 1}-0`); return false
+            }
+            if (dir === 'down') {
+              if (rowIdx < totalRows - 1) { setFocus(`movie-dash-${rowIdx + 1}-0`); return false }
+              return false
+            }
+            if (dir === 'left') {
+              if (colIdx > 0) { setFocus(`movie-dash-${rowIdx}-${colIdx - 1}`); return false }
+              return false
+            }
+            if (dir === 'right') {
+              setFocus(`movie-dash-${rowIdx}-${colIdx + 1}`); return false
+            }
+            return true
+          }
+
+          const props = {
+            item, focusKey: fk, onSelect: () => onSelect(item.id, fk), onArrow,
+            onFocused: (rect?: DOMRect) => handleFocus(item, colIdx, rect)
+          }
+
+          return (
+            <div key={item.id} style={{ marginRight: 16, flexShrink: 0, width: isContinue ? 240 : 160 }}>
+              {isContinue ? <ContinueCard {...props} /> : <MovieCard {...props} />}
+            </div>
+          )
+        })}
+        <div key="view-more" style={{ marginRight: '5vw' }}>
+          <ViewMoreCard
+            rowIdx={rowIdx}
+            colIdx={items.length}
+            isContinue={isContinue}
+            onArrow={(dir) => {
+              if (dir === 'up') {
+                if (rowIdx === 0) { setFocus('movies-cat-0'); return false }
+                setFocus(`movie-dash-${rowIdx - 1}-0`); return false
+              }
+              if (dir === 'down') {
+                if (rowIdx < totalRows - 1) { setFocus(`movie-dash-${rowIdx + 1}-0`); return false }
+                return false
+              }
+              if (dir === 'left') {
+                if (items.length > 0) { setFocus(`movie-dash-${rowIdx}-${items.length - 1}`); return false }
+                return false
+              }
+              if (dir === 'right') return false
+              return true
+            }}
+            onSelect={onViewMore}
+            onFocused={(rect) => handleFocus(null, items.length, rect)}
+          />
+        </div>
+      </div>
+    </div>
+    </FocusContext.Provider>
+  )
+}
+
 export function MoviesScreen() {
   const initialCache = useRef(_cache).current
   const [categories, setCategories] = useState<MovieCategory[]>(initialCache?.categories ?? [])
@@ -321,6 +488,7 @@ export function MoviesScreen() {
   const pageRef = useRef(initialCache?.page ?? 1)
   const scrollRef = useRef<HTMLDivElement>(null)
   const lastFocusKeyRef = useRef(initialCache?.lastFocusKey ?? 'movies-cat-0')
+  const lastClickedMovieIdRef = useRef<number | null>(initialCache?.lastClickedMovieId ?? null)
   const stateRef = useRef({ categories, movies, selectedGenre, selectedCatId, hasMore })
   const dashboardItemsRef = useRef<Record<number, MovieItem[]>>(initialCache?.dashboardItems ?? {})
 
@@ -343,10 +511,20 @@ export function MoviesScreen() {
       scrollTop: scrollRef.current?.scrollTop ?? 0,
       lastFocusKey: lastFocusKeyRef.current,
       dashboardItems: dashboardItemsRef.current,
+      lastClickedMovieId: lastClickedMovieIdRef.current,
     }
   }, [])
 
   const loadMovies = useCallback(async (catId: number, reset: boolean, passedCatName?: string) => {
+    if (catId === -1) {
+      if (reset) {
+        setLoadingMovies(false)
+        setMovies([])
+        setHasMore(false)
+        pageRef.current = 0
+      }
+      return
+    }
     const preloaded = dashboardItemsRef.current[catId]
     const catName = passedCatName ?? stateRef.current.categories.find(c => c.id === catId)?.name ?? ''
     const isContinue = catName.toLowerCase().includes('continue')
@@ -382,33 +560,34 @@ export function MoviesScreen() {
 
   useEffect(() => {
     if (initialCache) {
-      const cachedCatName = initialCache.categories[initialCache.selectedGenre]?.name ?? ''
-      const cachedIsContinue = cachedCatName.toLowerCase().includes('continue')
-      if (!cachedIsContinue) {
-        setTimeout(() => {
-          setFocus(initialCache.lastFocusKey)
-          if (scrollRef.current) scrollRef.current.scrollTop = initialCache.scrollTop
-        }, 60)
-      }
+      setTimeout(() => {
+        setFocus(initialCache.lastFocusKey)
+        if (scrollRef.current) scrollRef.current.scrollTop = initialCache.scrollTop
+      }, 60)
+      
       fetchMovieDashboard().then((data) => {
         dashboardItemsRef.current = data.channelsByCategory
-        setCategories(data.categories)
+        const allCat = { id: -1, name: 'All' }
+        const fullCats = [allCat, ...data.categories]
+        setCategories(fullCats)
         const s = stateRef.current
-        const currentCat = s.categories[s.selectedGenre]
+        const currentCat = fullCats[s.selectedGenre]
+        
         if (currentCat?.name.toLowerCase().includes('continue')) {
           const fresh = data.channelsByCategory[s.selectedCatId] ?? []
           setMovies(fresh)
-          setTimeout(() => setFocus('movie-card-0-0'), 150)
         }
       })
       return
     }
     fetchMovieDashboard().then((data) => {
       dashboardItemsRef.current = data.channelsByCategory
-      setCategories(data.categories)
+      const allCat = { id: -1, name: 'All' }
+      const fullCats = [allCat, ...data.categories]
+      setCategories(fullCats)
       setLoadingCats(false)
-      if (data.categories.length > 0) {
-        const firstCat = data.categories[0]
+      if (fullCats.length > 0) {
+        const firstCat = fullCats[0]
         setSelectedCatId(firstCat.id)
         loadMovies(firstCat.id, true, firstCat.name)
       }
@@ -422,7 +601,13 @@ export function MoviesScreen() {
     pageRef.current = 0
     if (scrollRef.current) scrollRef.current.scrollTop = 0
     loadMovies(catId, true, catName)
-    setTimeout(() => setFocus('movie-card-0-0'), 500)
+    setTimeout(() => {
+      if (catId === -1) {
+        setFocus('movie-dash-0-0')
+      } else {
+        setFocus('movie-card-0-0')
+      }
+    }, 500)
   }, [loadMovies, setFocus])
 
   useEffect(() => {
@@ -475,6 +660,19 @@ export function MoviesScreen() {
   const isContinueCat = selectedName.toLowerCase().includes('continue')
   const activeCols = isContinueCat ? COLS_CONTINUE : COLS
   const rows = Math.ceil(movies.length / activeCols)
+  
+  const isAll = selectedCatId === -1
+  const dashboardRows = isAll ? categories.filter(c => c.id !== -1 && dashboardItemsRef.current[c.id]?.length > 0) : []
+
+  const handleViewMore = useCallback((catId: number, catIdx: number) => {
+    setSelectedGenre(catIdx)
+    setSelectedCatId(catId)
+    loadMovies(catId, true, categories[catIdx]?.name)
+    setTimeout(() => {
+      setFocus('movie-card-0-0')
+      if (scrollRef.current) scrollRef.current.scrollTop = 0
+    }, 150)
+  }, [loadMovies, setFocus, categories])
 
   const cardArrow = useCallback((row: number, col: number, cols: number) => (dir: string): boolean => {
     if (dir === 'up') {
@@ -510,10 +708,6 @@ export function MoviesScreen() {
           paddingTop: 'clamp(14px, 2.5vh, 28px)', paddingBottom: 'clamp(8px, 1.5vh, 12px)',
           flexShrink: 0,
         }}>
-          <h1 className="text-tv-3xl font-bold text-white leading-tight">🎬 Movies</h1>
-          <p className="text-white/50 text-tv-sm mt-1 mb-2">
-            {loadingCats ? 'Loading…' : `${selectedName} · ${movies.length} titles`}
-          </p>
         </div>
 
         {!loadingCats && (
@@ -531,7 +725,10 @@ export function MoviesScreen() {
                 isSelected={selectedGenre === i}
                 onSelect={() => handleSelectCategory(i, cat.id, cat.name)}
                 onUp={() => setFocus('nav-movies')}
-                onDown={() => { if (movies.length > 0) setFocus('movie-card-0-0') }}
+                onDown={() => {
+                  if (isAll && dashboardRows.length > 0) setFocus('movie-dash-0-0')
+                  else if (!isAll && movies.length > 0) setFocus('movie-card-0-0')
+                }}
                 onFocused={() => notifyMoviesFocusLevel('pill', i)}
               />
             ))}
@@ -550,65 +747,93 @@ export function MoviesScreen() {
             style={{ flex: 1, overflowY: 'auto', overflowX: 'hidden' }}
             className="scrollbar-hide"
           >
-            <div style={{ paddingLeft: '5vw', paddingRight: '5vw', paddingTop: 16, paddingBottom: 120 }}>
+            <div style={{ paddingLeft: isAll ? 0 : '5vw', paddingRight: isAll ? 0 : '5vw', paddingTop: 16, paddingBottom: 120 }}>
               {loadingMovies ? (
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '30vh', color: 'rgba(255,255,255,0.4)', fontSize: 14 }}>
                   Loading…
                 </div>
-              ) : movies.length === 0 ? (
+              ) : (isAll && dashboardRows.length === 0) || (!isAll && movies.length === 0) ? (
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '30vh', color: 'rgba(255,255,255,0.4)', fontSize: 14 }}>
                   No movies available
                 </div>
               ) : (
                 <>
-                  {Array.from({ length: rows }).map((_, rowIdx) => {
-                    const rowItems = movies.slice(rowIdx * activeCols, (rowIdx + 1) * activeCols)
-                    return (
-                      <div key={rowIdx} style={{ display: 'flex', gap: 16, marginBottom: 16 }}>
-                        {rowItems.map((item, colIdx) => {
-                          const fk = `movie-card-${rowIdx}-${colIdx}`
-                          return isContinueCat ? (
-                            <ContinueCard
-                              key={item.id}
-                              item={item}
-                              focusKey={fk}
-                              onArrow={cardArrow(rowIdx, colIdx, activeCols)}
-                              onSelect={() => {
-                                lastFocusKeyRef.current = fk
-                                _navigatingToDetail = true
-                                saveCache()
-                                navigateToMovieDetail(item.id)
-                              }}
-                              onFocused={() => notifyMoviesFocusLevel('card', selectedGenre)}
-                            />
-                          ) : (
-                            <MovieCard
-                              key={item.id}
-                              item={item}
-                              focusKey={fk}
-                              onArrow={cardArrow(rowIdx, colIdx, activeCols)}
-                              onSelect={() => {
-                                lastFocusKeyRef.current = fk
-                                _navigatingToDetail = true
-                                saveCache()
-                                navigateToMovieDetail(item.id)
-                              }}
-                              onFocused={() => notifyMoviesFocusLevel('card', selectedGenre)}
-                            />
-                          )
-                        })}
-                        {rowItems.length < activeCols && Array.from({ length: activeCols - rowItems.length }).map((_, i) => (
-                          <div key={`spacer-${i}`} style={{ flex: 1, aspectRatio: isContinueCat ? '16/9' : '2/3' }} />
-                        ))}
-                      </div>
-                    )
-                  })}
-                  {loadingMore && (
+                  {isAll ? (
+                    dashboardRows.map((cat, rowIdx) => (
+                      <MovieDashboardRow
+                        key={cat.id}
+                        category={cat}
+                        items={dashboardItemsRef.current[cat.id] ?? []}
+                        rowIdx={rowIdx}
+                        totalRows={dashboardRows.length}
+                        onSelect={(id, fk) => {
+                          lastFocusKeyRef.current = fk
+                          lastClickedMovieIdRef.current = id
+                          _navigatingToDetail = true
+                          saveCache()
+                          navigateToMovieDetail(id)
+                        }}
+                        onFocused={() => notifyMoviesFocusLevel('card', selectedGenre)}
+                        onViewMore={() => {
+                          const actualCatIdx = categories.findIndex(c => c.id === cat.id)
+                          if (actualCatIdx !== -1) {
+                            handleViewMore(cat.id, actualCatIdx)
+                          }
+                        }}
+                      />
+                    ))
+                  ) : (
+                    Array.from({ length: rows }).map((_, rowIdx) => {
+                      const rowItems = movies.slice(rowIdx * activeCols, (rowIdx + 1) * activeCols)
+                      return (
+                        <div key={rowIdx} style={{ display: 'flex', gap: 16, marginBottom: 16 }}>
+                          {rowItems.map((item, colIdx) => {
+                            const fk = `movie-card-${rowIdx}-${colIdx}`
+                            return isContinueCat ? (
+                              <ContinueCard
+                                key={item.id}
+                                item={item}
+                                focusKey={fk}
+                                onArrow={cardArrow(rowIdx, colIdx, activeCols)}
+                                onSelect={() => {
+                                  lastFocusKeyRef.current = fk
+                                  lastClickedMovieIdRef.current = item.id
+                                  _navigatingToDetail = true
+                                  saveCache()
+                                  navigateToMovieDetail(item.id)
+                                }}
+                                onFocused={() => notifyMoviesFocusLevel('card', selectedGenre)}
+                              />
+                            ) : (
+                              <MovieCard
+                                key={item.id}
+                                item={item}
+                                focusKey={fk}
+                                onArrow={cardArrow(rowIdx, colIdx, activeCols)}
+                                onSelect={() => {
+                                  lastFocusKeyRef.current = fk
+                                  lastClickedMovieIdRef.current = item.id
+                                  _navigatingToDetail = true
+                                  saveCache()
+                                  navigateToMovieDetail(item.id)
+                                }}
+                                onFocused={() => notifyMoviesFocusLevel('card', selectedGenre)}
+                              />
+                            )
+                          })}
+                          {rowItems.length < activeCols && Array.from({ length: activeCols - rowItems.length }).map((_, i) => (
+                            <div key={`spacer-${i}`} style={{ flex: 1, aspectRatio: isContinueCat ? '16/9' : '2/3' }} />
+                          ))}
+                        </div>
+                      )
+                    })
+                  )}
+                  {loadingMore && !isAll && (
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: 60, color: 'rgba(255,255,255,0.4)', fontSize: 13 }}>
                       Loading more…
                     </div>
                   )}
-                  {!loadingMore && movies.length > 0 && (
+                  {!loadingMore && !isAll && movies.length > 0 && (
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: 40, color: 'rgba(255,255,255,0.2)', fontSize: 12 }}>
                       — end —
                     </div>

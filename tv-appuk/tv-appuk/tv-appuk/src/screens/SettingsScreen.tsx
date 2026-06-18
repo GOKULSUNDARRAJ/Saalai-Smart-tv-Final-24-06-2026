@@ -131,7 +131,9 @@ function SettingRow({ id, icon, label, value, action, prevId, nextId, onActivate
         transition: 'background 0.15s, border-color 0.15s',
       }}
     >
-      <span style={{ fontSize: '18px', marginRight: '14px', width: '24px', textAlign: 'center' }}>{icon}</span>
+      {icon ? (
+        <span style={{ fontSize: '18px', marginRight: '14px', width: '24px', textAlign: 'center' }}>{icon}</span>
+      ) : null}
       <span style={{
         flex: 1,
         color: action ? (focused ? '#ff6b6b' : '#e05050') : '#fff',
@@ -339,6 +341,27 @@ export function SettingsScreen() {
           <p style={{ color: 'rgba(255,255,255,0.45)', fontSize: '13px', marginTop: '4px', marginBottom: '12px' }}>
             App preferences and account
           </p>
+
+          {/* Expiration Warning Alert Banner (Mock UI) */}
+          <div style={{
+            marginTop: 16,
+            marginBottom: 8,
+            padding: '12px 20px',
+            borderRadius: 12,
+            background: 'linear-gradient(90deg, rgba(229,9,20,0.15) 0%, rgba(229,9,20,0.05) 100%)',
+            border: '1px solid rgba(229,9,20,0.4)',
+            display: 'flex',
+            alignItems: 'center',
+            gap: 12,
+            boxShadow: '0 4px 20px rgba(0,0,0,0.3)',
+          }}>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" style={{ color: '#e50914', flexShrink: 0 }}>
+              <path d="M12 9V14M12 17.01L12.01 16.998M12 3L2 21H22L12 3Z" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
+            <div style={{ color: '#fff', fontSize: 13, fontWeight: 500 }}>
+              Your subscription package will expire in <span style={{ color: '#e50914', fontWeight: 700 }}>5 days</span>. Please renew to continue uninterrupted streaming.
+            </div>
+          </div>
         </div>
 
         <div style={{ paddingLeft: '5vw', paddingRight: '5vw', paddingBottom: '64px' }}>

@@ -65,6 +65,7 @@ public class VideoActivity extends Activity {
     private long       movieId           = 0;
     private String     videoTitle        = "";
     private int        seekAttempts      = 0;
+    private final org.json.JSONObject playlistProgress = new org.json.JSONObject();
 
     private static final long SEEK_TOLERANCE_MS = 5000L;
     private static final int  MAX_SEEK_ATTEMPTS = 5;
@@ -94,6 +95,7 @@ public class VideoActivity extends Activity {
 
     private String[]    playlistUrls;
     private String[]    playlistTitles;
+    private long[]      playlistMovieIds;
     private int         playlistCurrentIndex = 0;
     private FrameLayout nextUpOverlay;
     private TextView    nextUpCountdownView;
@@ -268,10 +270,12 @@ public class VideoActivity extends Activity {
                 JSONArray arr = new JSONArray(playlistJson);
                 playlistUrls = new String[arr.length()];
                 playlistTitles = new String[arr.length()];
+                playlistMovieIds = new long[arr.length()];
                 for (int i = 0; i < arr.length(); i++) {
                     JSONObject obj = arr.getJSONObject(i);
                     playlistUrls[i] = obj.optString("url", "");
                     playlistTitles[i] = obj.optString("title", "");
+                    playlistMovieIds[i] = obj.optLong("movieId", 0);
                 }
                 Log.d(TAG, "onCreate: parsed playlist length=" + arr.length() + " currentIndex=" + playlistCurrentIndex);
             } catch (Exception e) {
@@ -469,6 +473,7 @@ public class VideoActivity extends Activity {
             return;
         }
         finishCalled = true;
+        recordCurrentItemProgress();
         long positionMs = (exoPlayer != null) ? exoPlayer.getCurrentPosition() : 0;
         Log.d(TAG, "finish: positionMs=" + positionMs + " | movieId=" + movieId + " | seekAttempts=" + seekAttempts + " | startPositionMs=" + startPositionMs + " | videoEndedNaturally=" + videoEndedNaturally);
         VideoPlayerPlugin.lastVideoPositionMs = positionMs;
@@ -494,6 +499,10 @@ public class VideoActivity extends Activity {
         }
         android.content.Intent result = new android.content.Intent();
         result.putExtra("position_ms", positionMs);
+        result.putExtra("movieId", movieId);
+        result.putExtra("url", currentUrl != null ? currentUrl : "");
+        result.putExtra("duration_ms", (exoPlayer != null) ? exoPlayer.getDuration() : 0L);
+        result.putExtra("playlist_progress", playlistProgress.toString());
         setResult(android.app.Activity.RESULT_OK, result);
         super.finish();
     }
@@ -626,7 +635,8 @@ public class VideoActivity extends Activity {
 
         seekBar = new SeekBar(this);
         seekBar.setMax(1000);
-        seekBar.setPadding(0, 0, 0, 0);
+        seekBar.setPadding(dp(16), dp(16), dp(16), dp(16));
+        seekBar.setSplitTrack(false);
         seekBar.setFocusable(false);
         seekBar.setFocusableInTouchMode(false);
 
@@ -1326,8 +1336,24 @@ public class VideoActivity extends Activity {
         nextUpOverlay.setVisibility(View.GONE);
     }
 
+    private void recordCurrentItemProgress() {
+        if (currentUrl == null || currentUrl.isEmpty()) return;
+        long positionMs = (exoPlayer != null) ? exoPlayer.getCurrentPosition() : 0;
+        long durationMs = (exoPlayer != null) ? exoPlayer.getDuration() : 0;
+        if (durationMs < 0) durationMs = 0;
+        try {
+            org.json.JSONObject item = new org.json.JSONObject();
+            item.put("positionMs", positionMs);
+            item.put("durationMs", durationMs);
+            playlistProgress.put(currentUrl, item);
+        } catch (Exception e) {
+            Log.e(TAG, "Failed to record progress for " + currentUrl, e);
+        }
+    }
+
     private void playNextItem() {
         dismissNextUpOverlay();
+        recordCurrentItemProgress();
         playlistCurrentIndex++;
         if (playlistUrls == null || playlistCurrentIndex >= playlistUrls.length) {
             finish();
@@ -1336,14 +1362,24 @@ public class VideoActivity extends Activity {
         currentUrl = playlistUrls[playlistCurrentIndex];
         videoTitle = playlistTitles != null && playlistCurrentIndex < playlistTitles.length
                 ? playlistTitles[playlistCurrentIndex] : "";
-        movieId = 0;
+        movieId = playlistMovieIds != null && playlistCurrentIndex < playlistMovieIds.length
+                ? playlistMovieIds[playlistCurrentIndex] : 0;
         startPositionMs = 0;
-        if (!videoTitle.isEmpty()) {
+        if (!disableResumeSave) {
             android.content.SharedPreferences prefs = getSharedPreferences("SaalaiTVResume", android.content.Context.MODE_PRIVATE);
-            long savedMs = prefs.getLong("pos_title_" + videoTitle, 0);
-            if (savedMs > 0) {
-                startPositionMs = savedMs;
-                Log.d(TAG, "playNextItem: resuming at " + savedMs + "ms for title=" + videoTitle);
+            if (movieId > 0) {
+                long savedMs = prefs.getLong("pos_" + movieId, 0);
+                if (savedMs > 0) {
+                    startPositionMs = savedMs;
+                    Log.d(TAG, "playNextItem: resume by movieId=" + movieId + " pos=" + startPositionMs);
+                }
+            }
+            if (startPositionMs == 0 && !videoTitle.isEmpty()) {
+                long savedMs = prefs.getLong("pos_title_" + videoTitle, 0);
+                if (savedMs > 0) {
+                    startPositionMs = savedMs;
+                    Log.d(TAG, "playNextItem: resume by title=" + videoTitle + " pos=" + startPositionMs);
+                }
             }
         }
         usedFallback = false;

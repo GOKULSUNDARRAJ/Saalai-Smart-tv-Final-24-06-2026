@@ -5,6 +5,7 @@ import type { CatchupChannelDetail, CatchupEpisode } from '../api/catchupApi'
 import { useAppStore } from '../store/appStore'
 import { playNative, shouldUseNativePlayer } from '../platform/nativeVideoPlayer'
 import type { PlaylistItem } from '../types/content'
+import { tvStorage } from '../platform/storage'
 
 const EP_COLS = 4
 
@@ -37,9 +38,9 @@ function DayPill({
 }
 
 function EpisodeCard({
-  item, focusKey, onArrow, onSelect,
+  item, focusKey, onArrow, onSelect, progressVersion, style,
 }: {
-  item: CatchupEpisode; focusKey: string; onArrow: (dir: string) => boolean; onSelect: () => void
+  item: CatchupEpisode; focusKey: string; onArrow: (dir: string) => boolean; onSelect: () => void; progressVersion: number; style?: React.CSSProperties
 }) {
   const [imgError, setImgError] = useState(false)
   const cardRef = useRef<HTMLDivElement>(null)
@@ -54,53 +55,73 @@ function EpisodeCard({
     (cardRef as React.MutableRefObject<HTMLDivElement | null>).current = el
   }, [ref])
 
+  // Retrieve resume progress
+  const [progress, setProgress] = useState(0)
+  useEffect(() => {
+    const key = `resume_pos_${item.showURL}`
+    const stored = tvStorage.getItem(key)
+    const storedDur = tvStorage.getItem(`resume_dur_${item.showURL}`)
+    if (stored) {
+      const pos = parseInt(stored) || 0
+      const dur = parseInt(storedDur ?? '0') || (1800 * 1000) // fallback 30m
+      if (pos > 0 && dur > 0) {
+        setProgress(Math.min(pos / dur, 1))
+      } else {
+        setProgress(0)
+      }
+    } else {
+      setProgress(0)
+    }
+  }, [item.showURL, progressVersion])
+
   return (
     <div
       ref={setRef}
       onClick={onSelect}
       style={{
         flex: 1,
-        aspectRatio: '16/9',
-        borderRadius: 10,
-        overflow: 'hidden',
-        position: 'relative',
-        outline: focused ? '3px solid #e50914' : '3px solid transparent',
-        outlineOffset: 3,
+        display: 'flex',
+        flexDirection: 'column',
         transform: focused ? 'scale(1.06)' : 'scale(1)',
-        transition: 'transform 0.15s, outline-color 0.12s',
+        transition: 'transform 0.15s',
         zIndex: focused ? 10 : 1,
-        background: '#1a1a1a',
         cursor: 'pointer',
       }}
     >
-      {!imgError ? (
-        <img
-          src={item.showLogo}
-          alt={item.showName}
-          onError={() => setImgError(true)}
-          style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
-        />
-      ) : (
-        <div style={{
-          width: '100%', height: '100%',
-          background: 'linear-gradient(135deg, #1a1a2e, #16213e)',
-          display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 8,
-        }}>
-          <span style={{ color: '#fff', fontSize: 10, fontWeight: 600, textAlign: 'center', lineHeight: 1.4 }}>
-            {item.showName}
-          </span>
-        </div>
-      )}
       <div style={{
-        position: 'absolute', bottom: 0, left: 0, right: 0,
-        background: 'linear-gradient(to top, rgba(0,0,0,0.9) 0%, transparent 100%)',
-        padding: '16px 6px 6px',
-        opacity: focused ? 1 : 0.85,
-        transition: 'opacity 0.15s',
+        width: '100%', aspectRatio: '16/9', borderRadius: 10, overflow: 'hidden', background: '#1a1a1a', position: 'relative',
+        outline: focused ? '3px solid #e50914' : '3px solid transparent',
+        outlineOffset: 3,
+        transition: 'outline-color 0.12s'
       }}>
-        <p style={{ color: '#fff', fontSize: 9, fontWeight: 600, textAlign: 'center', margin: 0, overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>
+        {!imgError ? (
+          <img
+            src={item.showLogo}
+            alt={item.showName}
+            onError={() => setImgError(true)}
+            style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
+          />
+        ) : (
+          <div style={{
+            width: '100%', height: '100%',
+            background: 'linear-gradient(135deg, #1a1a2e, #16213e)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 8,
+          }}>
+            <span style={{ color: '#fff', fontSize: 10, fontWeight: 600, textAlign: 'center', lineHeight: 1.4 }}>
+              {item.showName}
+            </span>
+          </div>
+        )}
+        {progress > 0 && (
+          <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: 4, background: 'rgba(255,255,255,0.2)' }}>
+            <div style={{ width: `${progress * 100}%`, height: '100%', background: '#3b82f6' }} />
+          </div>
+        )}
+      </div>
+      <div style={{ marginTop: 8, paddingLeft: 4, paddingRight: 4 }}>
+        <div style={{ fontSize: 14, fontWeight: 500, color: '#fff', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
           {item.showName}
-        </p>
+        </div>
       </div>
     </div>
   )
@@ -110,9 +131,10 @@ export function CatchupDetailScreen() {
   const [detail, setDetail] = useState<CatchupChannelDetail | null>(null)
   const [loading, setLoading] = useState(true)
   const [selectedDayIdx, setSelectedDayIdx] = useState(0)
+  const [progressVersion, setProgressVersion] = useState(0)
   const episodeScrollRef = useRef<HTMLDivElement>(null)
 
-  const { selectedCatchupChannelId, navigate, goBack } = useAppStore()
+  const { currentScreen, selectedCatchupChannelId, navigate, goBack } = useAppStore()
   const { ref, focusKey, setFocus } = useFocusable({ focusKey: 'catchupdetail-screen', trackChildren: true })
   const { ref: backRef, focused: backFocused } = useFocusable({
     focusKey: 'catchupdetail-back',
@@ -138,6 +160,12 @@ export function CatchupDetailScreen() {
       episodeScrollRef.current.scrollTop = 0
     }
   }, [selectedDayIdx])
+
+  useEffect(() => {
+    if (currentScreen === 'catchupdetail') {
+      setProgressVersion(v => v + 1)
+    }
+  }, [currentScreen])
 
   const episodes = detail?.showList[selectedDayIdx]?.episodeList ?? []
   const epRows = Math.ceil(episodes.length / EP_COLS)
@@ -195,7 +223,10 @@ export function CatchupDetailScreen() {
       playlist = playableEps.map(e => ({ url: e.showURL!, title: e.showName, movieId: 0, thumbnailUrl: e.showLogo }))
       playlistIndex = epIdx
     }
-    const launched = await playNative(ep.showURL, ep.showName, undefined, false, playlist, playlistIndex, undefined, true)
+    const storedPos = tvStorage.getItem(`resume_pos_${ep.showURL}`)
+    const startPosMs = storedPos ? (parseInt(storedPos) || 0) : 0
+    const launched = await playNative(ep.showURL, ep.showName, startPosMs, false, playlist, playlistIndex, undefined, false)
+    setProgressVersion(v => v + 1)
     if (!launched && !shouldUseNativePlayer()) navigate('player', {
       id: ep.showName,
       title: ep.showName,
@@ -210,6 +241,7 @@ export function CatchupDetailScreen() {
       type: 'episode',
       playlist,
       playlistIndex,
+      startPositionMs: startPosMs,
     })
   }, [navigate, episodes])
 
@@ -240,21 +272,6 @@ export function CatchupDetailScreen() {
           background: 'transparent',
           flexShrink: 0,
         }}>
-          <button
-            ref={backRef}
-            onClick={() => goBack()}
-            style={{
-              display: 'inline-flex', alignItems: 'center', gap: 6,
-              background: backFocused ? 'rgba(255,255,255,0.25)' : 'rgba(255,255,255,0.1)',
-              border: backFocused ? '2px solid rgba(255,255,255,0.6)' : '2px solid rgba(255,255,255,0.2)',
-              color: '#fff', borderRadius: 8, padding: '8px 16px', fontSize: 13, fontWeight: 600,
-              cursor: 'pointer', outline: 'none', flexShrink: 0,
-              transform: backFocused ? 'scale(1.06)' : 'scale(1)',
-              transition: 'all 0.12s',
-            }}
-          >
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" style={{ flexShrink: 0 }}><path d="M15 5L8 12L15 19" stroke="currentColor" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round"/></svg> Back
-          </button>
           <img
             src={detail.channelLogo}
             alt={detail.channelName}
@@ -271,7 +288,9 @@ export function CatchupDetailScreen() {
         <div style={{ flex: 1, display: 'flex', overflow: 'hidden', gap: 0 }}>
 
           <div style={{
-            width: 150, flexShrink: 0,
+            width: 160, flexShrink: 0,
+            display: 'flex',
+            flexDirection: 'column',
             overflowY: 'auto', overflowX: 'hidden',
             paddingLeft: '2vw', paddingRight: 8,
             paddingTop: 8, paddingBottom: 16,
@@ -279,6 +298,23 @@ export function CatchupDetailScreen() {
           }}
             className="scrollbar-hide"
           >
+            <button
+              ref={backRef}
+              onClick={() => goBack()}
+              style={{
+                display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+                background: backFocused ? '#e50914' : 'rgba(255,255,255,0.07)',
+                border: backFocused ? '2px solid #e50914' : '2px solid transparent',
+                color: '#fff', borderRadius: 10, padding: '10px 14px', fontSize: 13, fontWeight: 700,
+                cursor: 'pointer', outline: 'none', flexShrink: 0,
+                transform: backFocused ? 'scale(1.04)' : 'scale(1)',
+                transition: 'all 0.12s',
+                marginBottom: 16,
+                width: '100%',
+              }}
+            >
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" style={{ flexShrink: 0 }}><path d="M15 5L8 12L15 19" stroke="currentColor" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round"/></svg> Back
+            </button>
             {detail.showList.map((day, idx) => (
               <DayPill
                 key={day.Date}
@@ -313,6 +349,7 @@ export function CatchupDetailScreen() {
                       focusKey={`catchupdetail-ep-${rowIdx}-${colIdx}`}
                       onArrow={epArrow(rowIdx, colIdx)}
                       onSelect={() => handleEpisodeSelect(ep)}
+                      progressVersion={progressVersion}
                     />
                   ))}
                   {rowItems.length < EP_COLS && Array.from({ length: EP_COLS - rowItems.length }).map((_, i) => (
@@ -327,3 +364,7 @@ export function CatchupDetailScreen() {
     </FocusContext.Provider>
   )
 }
+
+
+
+

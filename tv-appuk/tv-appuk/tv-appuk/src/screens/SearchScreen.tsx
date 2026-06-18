@@ -5,7 +5,8 @@ import type { SearchItem } from '../api/searchApi'
 import { useAppStore } from '../store/appStore'
 import { playNative, shouldUseNativePlayer } from '../platform/nativeVideoPlayer'
 
-const COLS = 4
+const COLS = 3
+const MOVIE_COLS = 4
 
 const KB_ROWS: string[][] = [
   ['a', 'b', 'c', 'd', 'e', 'f', 'g'],
@@ -13,7 +14,7 @@ const KB_ROWS: string[][] = [
   ['o', 'p', 'q', 'r', 's', 't', 'u'],
   ['v', 'w', 'x', 'y', 'z'],
   ['1', '2', '3', '4', '5', '6', '7', '8', '9', '0'],
-  ['⌫', 'space', 'clear'],
+  ['⌫', 'space', 'clear', 'ok'],
 ]
 
 let _searchSetFocusFn: ((key: string) => void) | null = null
@@ -36,13 +37,14 @@ interface SearchSection {
 }
 
 function SearchCard({
-  item, focusKey, onEnter, onArrow, onFocused,
+  item, focusKey, onEnter, onArrow, onFocused, isMovie,
 }: {
   item: SearchItem
   focusKey: string
   onEnter: () => void
   onArrow: (dir: string) => boolean
   onFocused?: () => void
+  isMovie?: boolean
 }) {
   const [imgError, setImgError] = useState(false)
   const domRef = useRef<HTMLDivElement | null>(null)
@@ -83,18 +85,19 @@ function SearchCard({
       ref={setRef}
       onClick={() => onEnterRef.current()}
       style={{
-        aspectRatio: '16/9',
+        aspectRatio: isMovie ? '2/3' : '16/9',
         borderRadius: 10,
         overflow: 'hidden',
         position: 'relative',
         cursor: 'pointer',
         outline: focused ? '3px solid #e50914' : '3px solid transparent',
-        outlineOffset: 3,
+        outlineOffset: -1,
         transform: focused ? 'scale(1.05)' : 'scale(1)',
         transition: 'transform 0.15s, outline-color 0.12s',
         zIndex: focused ? 10 : 1,
         background: '#1a1a2e',
         flexShrink: 0,
+        boxShadow: isMovie && focused ? '0 8px 32px rgba(229,9,20,0.35)' : isMovie ? '0 4px 16px rgba(0,0,0,0.5)' : 'none',
       }}
     >
       {!imgError ? (
@@ -107,23 +110,24 @@ function SearchCard({
       ) : (
         <div style={{
           width: '100%', height: '100%',
-          background: 'linear-gradient(135deg, #1a1a2e, #16213e)',
-          display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 8,
+          background: isMovie
+            ? 'linear-gradient(160deg, #1a1a2e 0%, #16213e 60%, #0f3460 100%)'
+            : 'linear-gradient(135deg, #1a1a2e, #16213e)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 12,
         }}>
-          <span style={{ color: '#fff', fontSize: 12, fontWeight: 600, textAlign: 'center', lineHeight: 1.4 }}>
+          <span style={{ color: '#fff', fontSize: isMovie ? 13 : 12, fontWeight: 600, textAlign: 'center', lineHeight: 1.4 }}>
             {item.channelName}
           </span>
         </div>
       )}
-      <div style={{
-        position: 'absolute', bottom: 0, left: 0, right: 0,
-        background: 'linear-gradient(to top, rgba(0,0,0,0.88) 0%, transparent 100%)',
-        padding: '20px 8px 8px',
-      }}>
-        <p style={{ color: '#fff', fontSize: 11, fontWeight: 600, textAlign: 'center', margin: 0, overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>
-          {item.channelName}
-        </p>
-      </div>
+      {isMovie && (
+        <div style={{
+          position: 'absolute', top: 0, left: 0, right: 0,
+          height: 3,
+          background: focused ? '#e50914' : 'transparent',
+          transition: 'background 0.15s',
+        }} />
+      )}
     </div>
   )
 }
@@ -140,6 +144,8 @@ function ResultSection({
   const { items, sectionIdx, title, type } = section
   if (items.length === 0) return null
 
+  const cols = type === 'movie' ? MOVIE_COLS : COLS
+
   const getSectionFirstKey = (si: number, col: number) => {
     const s = sections[si]
     if (!s || s.items.length === 0) return null
@@ -150,7 +156,8 @@ function ResultSection({
     const s = sections[si]
     if (!s || s.items.length === 0) return null
     const lastIdx = s.items.length - 1
-    const lastRowStart = Math.floor(lastIdx / COLS) * COLS
+    const c = sections[si].type === 'movie' ? MOVIE_COLS : COLS
+    const lastRowStart = Math.floor(lastIdx / c) * c
     return `search-card-${si}-${Math.min(lastRowStart + col, lastIdx)}`
   }
 
@@ -159,11 +166,11 @@ function ResultSection({
       <h2 style={{ color: 'rgba(255,255,255,0.45)', fontSize: 11, fontWeight: 700, letterSpacing: 2, margin: '0 0 10px' }}>
         {title.toUpperCase()}
       </h2>
-      <div style={{ display: 'grid', gridTemplateColumns: `repeat(${COLS}, 1fr)`, gap: 10 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: `repeat(${cols}, 1fr)`, gap: type === 'movie' ? 12 : 10, overflow: 'visible', padding: '6px 8px 8px' }}>
         {items.map((item, idx) => {
-          const row = Math.floor(idx / COLS)
-          const col = idx % COLS
-          const totalRows = Math.ceil(items.length / COLS)
+          const row = Math.floor(idx / cols)
+          const col = idx % cols
+          const totalRows = Math.ceil(items.length / cols)
           const isFirstRow = row === 0
           const isLastRow = row === totalRows - 1
 
@@ -174,6 +181,7 @@ function ResultSection({
               focusKey={`search-card-${sectionIdx}-${idx}`}
               onEnter={() => onSelect(item, type)}
               onFocused={onCardFocused}
+              isMovie={type === 'movie'}
               onArrow={(dir) => {
                 if (dir === 'up') {
                   if (isFirstRow) {
@@ -186,12 +194,12 @@ function ResultSection({
                     }
                     return false
                   }
-                  setFocus(`search-card-${sectionIdx}-${idx - COLS}`)
+                  setFocus(`search-card-${sectionIdx}-${idx - cols}`)
                   return false
                 }
                 if (dir === 'down') {
-                  if (!isLastRow && idx + COLS < items.length) {
-                    setFocus(`search-card-${sectionIdx}-${idx + COLS}`)
+                  if (!isLastRow && idx + cols < items.length) {
+                    setFocus(`search-card-${sectionIdx}-${idx + cols}`)
                     return false
                   }
                   if (isLastRow) {
@@ -206,7 +214,7 @@ function ResultSection({
                   return false
                 }
                 if (dir === 'right') {
-                  if (col < COLS - 1 && idx + 1 < items.length) {
+                  if (col < cols - 1 && idx + 1 < items.length) {
                     setFocus(`search-card-${sectionIdx}-${idx + 1}`)
                     return false
                   }
@@ -234,26 +242,29 @@ function KbKey({ label, focusKey, onPress, onArrow }: {
   const isSpace = label === 'space'
   const isClear = label === 'clear'
   const isBackspace = label === '⌫'
-  const isSpecial = isSpace || isClear || isBackspace
+  const isOk = label === 'ok'
+  const isSpecial = isSpace || isClear || isBackspace || isOk
 
-  const displayLabel = isSpace ? 'SPACE' : isClear ? 'CLEAR' : label.toUpperCase()
+  const displayLabel = isSpace ? 'SPACE' : isClear ? 'CLEAR' : isOk ? 'OK' : label.toUpperCase()
 
   return (
     <div
       ref={ref as React.RefObject<HTMLDivElement>}
       onClick={onPress}
       style={{
-        flex: isSpace ? 3 : isClear ? 2 : 1,
-        minWidth: isSpace ? 64 : isClear ? 52 : 0,
+        flex: isSpace ? 3 : isClear ? 2 : isOk ? 2 : 1,
+        minWidth: isSpace ? 64 : isClear ? 52 : isOk ? 52 : 0,
         height: 46,
         display: 'flex', alignItems: 'center', justifyContent: 'center',
         borderRadius: 8,
         background: focused
-          ? '#e50914'
-          : isSpecial
-            ? 'rgba(255,255,255,0.1)'
-            : 'rgba(255,255,255,0.07)',
-        border: focused ? 'none' : '1px solid rgba(255,255,255,0.1)',
+          ? (isOk ? '#2ecc40' : '#e50914')
+          : isOk
+            ? 'rgba(46,204,64,0.25)'
+            : isSpecial
+              ? 'rgba(255,255,255,0.1)'
+              : 'rgba(255,255,255,0.07)',
+        border: focused ? 'none' : isOk ? '1px solid rgba(46,204,64,0.4)' : '1px solid rgba(255,255,255,0.1)',
         color: '#fff',
         fontSize: isSpecial ? 11 : 15,
         fontWeight: 700,
@@ -275,6 +286,7 @@ export function SearchScreen() {
   const [results, setResults] = useState<{ channelList: SearchItem[]; movieList: SearchItem[]; showList: SearchItem[] } | null>(null)
   const [loading, setLoading] = useState(false)
   const [cursorOn, setCursorOn] = useState(true)
+  const [minLengthMsg, setMinLengthMsg] = useState('')
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const sectionsRef = useRef<SearchSection[]>([])
   const { navigate, navigateToMovieDetail, navigateToTvShowDetail } = useAppStore()
@@ -297,16 +309,25 @@ export function SearchScreen() {
     return () => clearInterval(t)
   }, [])
 
-  useEffect(() => {
-    if (debounceRef.current) clearTimeout(debounceRef.current)
-    if (!query.trim()) { setResults(null); setLoading(false); return }
-    setLoading(true)
-    debounceRef.current = setTimeout(async () => {
-      const data = await searchProgram(query)
-      setResults(data)
+  const doSearch = useCallback(async (q: string) => {
+    const trimmed = q.trim()
+    if (trimmed.length < 3) {
+      setResults(null)
       setLoading(false)
-    }, 500)
-    return () => { if (debounceRef.current) clearTimeout(debounceRef.current) }
+      setMinLengthMsg('Please enter at least 3 letters')
+      if (debounceRef.current) clearTimeout(debounceRef.current)
+      debounceRef.current = setTimeout(() => setMinLengthMsg(''), 3000)
+      return
+    }
+    setMinLengthMsg('')
+    setLoading(true)
+    const data = await searchProgram(trimmed)
+    setResults(data)
+    setLoading(false)
+  }, [])
+
+  useEffect(() => {
+    if (!query.trim()) { setResults(null); setLoading(false) }
   }, [query])
 
   const handleKey = useCallback((key: string) => {
@@ -314,12 +335,15 @@ export function SearchScreen() {
       setQuery(q => q.slice(0, -1))
     } else if (key === 'clear') {
       setQuery('')
+      setResults(null)
     } else if (key === 'space') {
       setQuery(q => q + ' ')
+    } else if (key === 'ok') {
+      setQuery(q => { doSearch(q); return q })
     } else {
       setQuery(q => q + key)
     }
-  }, [])
+  }, [doSearch])
 
   const handleSelect = useCallback(async (item: SearchItem, type: 'channel' | 'movie' | 'show') => {
     if (type === 'channel') {
@@ -450,7 +474,7 @@ export function SearchScreen() {
             )}
           </div>
 
-          <div style={{ flex: 1, overflowY: 'auto', overflowX: 'hidden', paddingRight: '4vw' }} className="scrollbar-hide">
+          <div style={{ flex: 1, overflowY: 'auto', overflowX: 'clip', paddingLeft: 8, paddingRight: '4vw', paddingTop: 4, paddingBottom: 8 }} className="scrollbar-hide">
             {loading && (
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', paddingTop: 60, color: 'rgba(255,255,255,0.4)', fontSize: 14 }}>
                 Searching…
@@ -464,13 +488,20 @@ export function SearchScreen() {
               </div>
             )}
 
-            {!loading && !query.trim() && (
+            {!loading && !query.trim() && !minLengthMsg && (
               <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', paddingTop: 60, gap: 10, textAlign: 'center' }}>
                 <svg viewBox="0 0 24 24" style={{ width: 64, height: 64, fill: 'none', stroke: 'rgba(255,255,255,0.12)', strokeWidth: 1.5 }}>
                   <circle cx="11" cy="11" r="7" />
                   <line x1="16.5" y1="16.5" x2="22" y2="22" />
                 </svg>
                 <p style={{ color: 'rgba(255,255,255,0.35)', fontSize: 14, margin: 0 }}>Start typing to search</p>
+              </div>
+            )}
+
+            {minLengthMsg && (
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', paddingTop: 60, gap: 10, textAlign: 'center' }}>
+                <span style={{ fontSize: 40, opacity: 0.3 }}>⚠</span>
+                <p style={{ color: '#ffb347', fontSize: 14, fontWeight: 600, margin: 0 }}>{minLengthMsg}</p>
               </div>
             )}
 

@@ -32,7 +32,7 @@ export async function searchProgram(keyword: string): Promise<SearchResponse> {
     const text = await res.text()
     const data = typeof text === 'string' ? JSON.parse(text) : text
     if (checkAccessDenied(data)) return empty
-    if (data.error_type !== '200') return empty
+    if (data.error_type !== '200' && data.error_type !== '201' && data.result !== 'true') return empty
     const mapItem = (item: Record<string, unknown>): SearchItem => ({
       channelId: item.channelId as number,
       channelName: item.channelName as string,

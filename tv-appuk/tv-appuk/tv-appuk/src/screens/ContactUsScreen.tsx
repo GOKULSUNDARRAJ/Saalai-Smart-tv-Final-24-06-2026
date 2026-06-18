@@ -199,12 +199,11 @@ export function ContactUsScreen() {
       <div ref={(el) => { scrollContainerRef.current = el; const r = ref as unknown; if (typeof r === 'function') (r as (e: HTMLDivElement | null) => void)(el); else if (r && typeof r === 'object') (r as { current: HTMLDivElement | null }).current = el }} style={{ height: '100%', overflowY: 'auto', overflowX: 'hidden', paddingLeft: '5vw', paddingRight: '5vw', paddingBottom: 48 }} className="scrollbar-hide">
         <div style={{ paddingTop: 'clamp(14px, 2.5vh, 28px)', paddingBottom: 12 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 4 }}>
-            <span style={{ fontSize: 28 }}>📞</span>
             <h1 style={{ color: '#fff', fontSize: 'clamp(22px, 3vw, 36px)', fontWeight: 700, margin: 0 }}>
               {data?.title ?? 'Contact Us'}
             </h1>
           </div>
-          <p style={{ color: 'rgba(255,255,255,0.5)', fontSize: 13, marginTop: 6, marginBottom: 0, paddingLeft: 44 }}>
+          <p style={{ color: 'rgba(255,255,255,0.5)', fontSize: 13, marginTop: 6, marginBottom: 0, paddingLeft: 0 }}>
             {data?.desc ?? 'Please Contact Our Support Team.'}
           </p>
         </div>

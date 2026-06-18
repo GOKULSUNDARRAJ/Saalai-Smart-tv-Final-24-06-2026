@@ -100,14 +100,28 @@ public class VideoPlayerPlugin extends Plugin {
         long positionMs = lastVideoPositionMs;
         lastVideoPositionMs = 0;
         long navigateToMovieId = 0;
+        long lastPlayedMovieId = 0;
+        String url = "";
+        long durationMs = 0;
+        String playlistProgress = "";
         if (result != null && result.getData() != null) {
             if (positionMs == 0) positionMs = result.getData().getLongExtra("position_ms", 0);
             navigateToMovieId = result.getData().getLongExtra("navigate_to_movie_id", 0);
+            lastPlayedMovieId = result.getData().getLongExtra("movieId", 0);
+            url = result.getData().getStringExtra("url");
+            durationMs = result.getData().getLongExtra("duration_ms", 0);
+            playlistProgress = result.getData().getStringExtra("playlist_progress");
         }
-        Log.d("VideoPlayerPlugin", "handleVideoResult: positionMs=" + positionMs + " navigateToMovieId=" + navigateToMovieId);
+        if (url == null) url = "";
+        if (playlistProgress == null) playlistProgress = "";
+        Log.d("VideoPlayerPlugin", "handleVideoResult: positionMs=" + positionMs + " durationMs=" + durationMs + " url=" + url + " navigateToMovieId=" + navigateToMovieId + " lastPlayedMovieId=" + lastPlayedMovieId + " playlistProgress=" + playlistProgress);
         JSObject ret = new JSObject();
         ret.put("positionMs", positionMs);
         ret.put("navigateToMovieId", navigateToMovieId);
+        ret.put("lastPlayedMovieId", lastPlayedMovieId);
+        ret.put("url", url);
+        ret.put("durationMs", durationMs);
+        ret.put("playlistProgress", playlistProgress);
         call.resolve(ret);
     }
 

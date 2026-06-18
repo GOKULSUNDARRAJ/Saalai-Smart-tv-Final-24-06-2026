@@ -1,4 +1,4 @@
-import { useRef } from 'react'
+import { useRef, useState, useEffect } from 'react'
 import { useFocusable, FocusContext } from '@noriginmedia/norigin-spatial-navigation'
 import type { Screen } from '../../types/content'
 import { useAppStore } from '../../store/appStore'
@@ -195,6 +195,62 @@ function SearchNavItem({ onSelect, isActive }: { onSelect: () => void; isActive:
   )
 }
 
+function DateTimeNetworkWidget() {
+  const [time, setTime] = useState('')
+  const [date, setDate] = useState('')
+  const [isOnline, setIsOnline] = useState(navigator.onLine)
+
+  useEffect(() => {
+    const updateDateTime = () => {
+      const now = new Date()
+      let hours = now.getHours()
+      const minutes = now.getMinutes()
+      const ampm = hours >= 12 ? 'PM' : 'AM'
+      hours = hours % 12
+      hours = hours ? hours : 12
+      const strMinutes = minutes < 10 ? '0' + minutes : minutes
+      setTime(`${hours}:${strMinutes} ${ampm}`)
+
+      const options: Intl.DateTimeFormatOptions = { weekday: 'short', day: 'numeric', month: 'short' }
+      setDate(now.toLocaleDateString('en-US', options))
+    }
+
+    updateDateTime()
+    const timer = setInterval(updateDateTime, 1000)
+
+    const handleOnline = () => setIsOnline(true)
+    const handleOffline = () => setIsOnline(false)
+
+    window.addEventListener('online', handleOnline)
+    window.addEventListener('offline', handleOffline)
+
+    return () => {
+      clearInterval(timer)
+      window.removeEventListener('online', handleOnline)
+      window.removeEventListener('offline', handleOffline)
+    }
+  }, [])
+
+  return (
+    <div style={{
+      display: 'flex',
+      alignItems: 'center',
+      gap: 8,
+      marginRight: 0,
+      color: 'rgba(255,255,255,0.7)',
+      fontFamily: 'Inter, sans-serif',
+    }}>
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" style={{ color: isOnline ? '#fff' : 'rgba(255,255,255,0.3)', transition: 'color 0.3s', marginRight: 4 }}>
+        <path d="M12 20H12.01M17 15C14.2386 12.2386 9.76142 12.2386 7 15M20.5 11.5C15.8056 6.80558 8.19442 6.80558 3.5 11.5M23.5 8C17.1487 1.64873 6.85127 1.64873 0.5 8" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
+      </svg>
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', lineHeight: 1.25 }}>
+        <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.6)', whiteSpace: 'nowrap' }}>{date}</span>
+        <span style={{ color: '#fff', fontWeight: 700, fontSize: 15, whiteSpace: 'nowrap' }}>{time}</span>
+      </div>
+    </div>
+  )
+}
+
 export function Sidebar() {
   const { currentScreen, navigate, menuItems, setHomeScrolled } = useAppStore()
   const { ref, focusKey, setFocus } = useFocusable({
@@ -270,6 +326,10 @@ export function Sidebar() {
             />
           ))}
         </nav>
+
+        <div style={{ flex: 1 }} />
+
+        <DateTimeNetworkWidget />
 
         <div style={{ flex: 1 }} />
 

@@ -25,9 +25,9 @@ function formatResumeTime(posMs: number): string {
 }
 
 function EpisodeCard({
-  item, focusKey, onArrow, onSelect, isSelected, progressPct,
+  item, focusKey, onArrow, onSelect, isSelected, progressPct, style,
 }: {
-  item: EpisodeItem; focusKey: string; onArrow: (dir: string) => boolean; onSelect: () => void; isSelected?: boolean; progressPct?: number
+  item: EpisodeItem; focusKey: string; onArrow: (dir: string) => boolean; onSelect: () => void; isSelected?: boolean; progressPct?: number; style?: React.CSSProperties
 }) {
   const [imgError, setImgError] = useState(false)
   const domRef = useRef<HTMLDivElement | null>(null)
@@ -62,24 +62,37 @@ function EpisodeCard({
     }
   }, [focused])
 
+  const showActiveBorder = focused || isSelected
+  const borderColor = focused ? '#e50914' : isSelected ? 'rgba(229,9,20,0.5)' : 'transparent'
+
   return (
     <div
       ref={setRef}
       onClick={onSelect}
       style={{
         flex: 1,
-        aspectRatio: '16/8',
-        borderRadius: 12,
-        outline: focused ? '3px solid #e50914' : isSelected ? '3px solid rgba(229,9,20,0.5)' : '3px solid transparent',
-        outlineOffset: 3,
+        display: 'flex',
+        flexDirection: 'column',
         transform: focused ? 'scale(1.06)' : 'scale(1)',
-        transition: 'transform 0.15s, outline-color 0.12s',
+        transition: 'transform 0.15s',
         zIndex: focused ? 10 : 1,
         cursor: 'pointer',
-        position: 'relative',
+        ...style,
       }}
     >
-      <div style={{ width: '100%', height: '100%', borderRadius: 12, overflow: 'hidden', background: '#1a1a1a', position: 'relative' }}>
+      <div
+        style={{
+          width: '100%',
+          aspectRatio: '16/8',
+          borderRadius: 10,
+          overflow: 'hidden',
+          background: '#1a1a1a',
+          position: 'relative',
+          outline: showActiveBorder ? `3px solid ${borderColor}` : '3px solid transparent',
+          outlineOffset: 2,
+          transition: 'outline-color 0.15s',
+        }}
+      >
         {!imgError ? (
           <img
             src={item.episodeLogo}
@@ -89,36 +102,33 @@ function EpisodeCard({
           />
         ) : (
           <div style={{
-            width: '100%', height: '100%',
-            background: 'linear-gradient(135deg, #1a1a2e, #16213e)',
-            display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 8,
-          }}>
-            <span style={{ color: '#fff', fontSize: 11, fontWeight: 600, textAlign: 'center', lineHeight: 1.4 }}>
-              {item.episodeName}
-            </span>
-          </div>
-        )}
-        <div style={{
-          position: 'absolute', bottom: 0, left: 0, right: 0,
-          background: 'linear-gradient(to top, rgba(0,0,0,0.9) 0%, transparent 100%)',
-          padding: '18px 6px 6px',
-        }}>
-          <p style={{ color: '#fff', fontSize: 10, fontWeight: 600, textAlign: 'center', margin: 0, overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>
-            {item.episodeName}
-          </p>
-          {item.episodeDate ? (
-            <p style={{ color: 'rgba(255,255,255,0.55)', fontSize: 9, textAlign: 'center', margin: '2px 0 0', overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>
-              {item.episodeDate}
-            </p>
-          ) : null}
+              width: '100%', height: '100%',
+              background: 'linear-gradient(135deg, #1a1a2e, #16213e)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 8,
+            }}>
+              <span style={{ color: '#fff', fontSize: 11, fontWeight: 600, textAlign: 'center', lineHeight: 1.4 }}>
+                {item.episodeName}
+              </span>
+            </div>
+          )}
+
+          {progressPct != null && progressPct > 0 && (
+            <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: 4, background: 'rgba(255,255,255,0.2)', borderRadius: '0 0 10px 10px' }}>
+              <div style={{ height: '100%', width: `${Math.min(progressPct, 100)}%`, background: '#3b82f6', borderRadius: '0 0 0 10px' }} />
+            </div>
+          )}
         </div>
-        {progressPct != null && progressPct > 0 && (
-          <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: 4, background: 'rgba(255,255,255,0.2)', borderRadius: '0 0 12px 12px' }}>
-            <div style={{ height: '100%', width: `${Math.min(progressPct, 100)}%`, background: '#3b82f6', borderRadius: '0 0 0 12px' }} />
+        <div style={{ marginTop: 8, paddingLeft: 4, paddingRight: 4 }}>
+          <div style={{ fontSize: 14, fontWeight: 500, color: '#fff', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+            {item.episodeName}
           </div>
-        )}
+          {item.episodeDate && (
+            <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.6)', marginTop: 2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+              {item.episodeDate}
+            </div>
+          )}
+        </div>
       </div>
-    </div>
   )
 }
 
@@ -178,7 +188,10 @@ export function TvShowDetailScreen() {
   const [selectedEpisodeId, setSelectedEpisodeId] = useState<number | null>(null)
   const [resumeData, setResumeData] = useState<ResumeData | null>(null)
   const [progressVersion, setProgressVersion] = useState(0)
-  const scrollRef = useRef<HTMLDivElement>(null)
+  const [loadingMore, setLoadingMore] = useState(false)
+  const [hasMore, setHasMore] = useState(true)
+  const pageRef = useRef(1)
+  const scrollRef = useRef<HTMLDivElement | null>(null)
 
   const { ref, focusKey, setFocus } = useFocusable({ focusKey: 'tvshowdetail-screen', trackChildren: true })
 
@@ -188,16 +201,66 @@ export function TvShowDetailScreen() {
 
   const loadEpisodes = useCallback(async (channelId: number, episodeId = 0) => {
     setLoading(true)
+    setHasMore(true)
+    pageRef.current = 1
     if (scrollRef.current) scrollRef.current.scrollTop = 0
-    const data = await fetchTvShowEpisodeList(channelId, episodeId)
+    const data = await fetchTvShowEpisodeList(channelId, episodeId, 0, 25)
     setEpisodeDetail(data.episodeDetails)
     setEpisodes(data.episodes)
+    if (data.episodeDetails) {
+      setSelectedEpisodeId(data.episodeDetails.episodeId)
+    }
+    if (data.episodes.length < 25) {
+      setHasMore(false)
+    }
     setLoading(false)
   }, [])
 
+  const loadMoreEpisodes = useCallback(async () => {
+    if (!selectedTvShowId || loadingMore || !hasMore) return
+    setLoadingMore(true)
+    const nextPage = pageRef.current
+    const activeEpId = selectedEpisodeId ?? 0
+    const data = await fetchTvShowEpisodeList(selectedTvShowId, activeEpId, nextPage, 25)
+    if (data.episodes.length > 0) {
+      setEpisodes(prev => {
+        const existingIds = new Set(prev.map(e => e.episodeId))
+        const filtered = data.episodes.filter(e => !existingIds.has(e.episodeId))
+        return [...prev, ...filtered]
+      })
+      pageRef.current = nextPage + 1
+    }
+    if (data.episodes.length < 25) {
+      setHasMore(false)
+    }
+    setLoadingMore(false)
+  }, [selectedTvShowId, loadingMore, hasMore, selectedEpisodeId])
+
+
+  const handleScroll = useCallback(() => {
+    const el = scrollRef.current
+    if (!el || loadingMore || !hasMore) return
+    const nearBottom = el.scrollHeight - el.scrollTop - el.clientHeight < 300
+    if (nearBottom) {
+      loadMoreEpisodes()
+    }
+  }, [loadingMore, hasMore, loadMoreEpisodes])
+
+  const setScrollRef = useCallback((node: HTMLDivElement | null) => {
+    if (scrollRef.current) {
+      scrollRef.current.removeEventListener('scroll', handleScroll)
+    }
+    scrollRef.current = node
+    if (node) {
+      node.addEventListener('scroll', handleScroll)
+    }
+  }, [handleScroll])
+
   useEffect(() => {
     if (!selectedTvShowId) return
-    loadEpisodes(selectedTvShowId)
+    const saved = tvStorage.getJSON<{ episodeId: number; episodeName: string }>(`tvshow_resume_${selectedTvShowId}`)
+    const resumeEpId = saved ? saved.episodeId : 0
+    loadEpisodes(selectedTvShowId, resumeEpId)
   }, [selectedTvShowId, loadEpisodes])
 
   useEffect(() => {
@@ -244,8 +307,8 @@ export function TvShowDetailScreen() {
   }, [goBack, setFocus, prevNavKey, prevScreen])
 
   const handleUpToNav = useCallback(() => {
-    setFocus(prevNavKey)
-  }, [setFocus, prevNavKey])
+    // Do nothing on UP arrow to prevent focus from getting lost to the hidden sidebar
+  }, [])
 
   const buildPlaylist = useCallback((
     startDetail: EpisodeDetail,
@@ -287,15 +350,35 @@ export function TvShowDetailScreen() {
         }
       }
     }
-    const launched = await playNative(episodeDetail.episodeURL, episodeDetail.episodeName, undefined, false, pl?.playlist, pl?.playlistIndex, episodeDetail.episodeId, false, true)
-    if (launched && shouldUseNativePlayer()) {
-      const posMs = await fetchAndSaveEpisodePosition(episodeDetail.episodeId)
+    const playRes = await playNative(episodeDetail.episodeURL, episodeDetail.episodeName, undefined, false, pl?.playlist, pl?.playlistIndex, episodeDetail.episodeId, false, true)
+    if (playRes && playRes.success && shouldUseNativePlayer()) {
+      const lastPlayedId = playRes.lastPlayedMovieId || episodeDetail.episodeId
+      const posMs = await fetchAndSaveEpisodePosition(lastPlayedId)
       setProgressVersion(v => v + 1)
+      
+      const lastPlayedEp = episodes.find(e => e.episodeId === lastPlayedId)
+      if (lastPlayedEp && selectedTvShowId) {
+        tvStorage.setJSON(`tvshow_resume_${selectedTvShowId}`, { episodeId: lastPlayedId, episodeName: lastPlayedEp.episodeName })
+        const epData = await fetchTvShowEpisodeList(selectedTvShowId, lastPlayedId)
+        if (epData.episodeDetails) {
+          setEpisodeDetail(epData.episodeDetails)
+          setSelectedEpisodeId(lastPlayedId)
+        }
+      }
+
+      const focusButtons = () => {
+        if (posMs > 10000) {
+          setFocus('tvshowdetail-resume')
+        } else {
+          setFocus('tvshowdetail-play')
+        }
+      }
+
       if (posMs > 10000) {
-        setResumeData({ episodeId: episodeDetail.episodeId, episodeName: episodeDetail.episodeName, posMs })
-        setTimeout(() => setFocus('tvshowdetail-resume'), 100)
+        setResumeData({ episodeId: lastPlayedId, episodeName: lastPlayedEp ? lastPlayedEp.episodeName : episodeDetail.episodeName, posMs })
+        setTimeout(focusButtons, 100)
       } else if (posMs === 0 && selectedTvShowId) {
-        const currentIndex = episodes.findIndex(e => e.episodeId === episodeDetail.episodeId)
+        const currentIndex = episodes.findIndex(e => e.episodeId === lastPlayedId)
         const nextEp = currentIndex >= 0 ? episodes[currentIndex + 1] : null
         if (nextEp) {
           const nextData = await fetchTvShowEpisodeList(selectedTvShowId, nextEp.episodeId)
@@ -305,13 +388,13 @@ export function TvShowDetailScreen() {
             setResumeData(null)
           }
         }
-        setTimeout(() => setFocus('tvshowdetail-play'), 100)
+        setTimeout(focusButtons, 100)
       } else {
-        setTimeout(() => setFocus('tvshowdetail-play'), 100)
+        setTimeout(focusButtons, 100)
       }
       return
     }
-    if (!launched && !shouldUseNativePlayer()) {
+    if (playRes && !playRes.success && !shouldUseNativePlayer()) {
       navigate('player', {
         id: `tvshow-${episodeDetail.episodeId}`,
         title: episodeDetail.episodeName,
@@ -349,20 +432,40 @@ export function TvShowDetailScreen() {
         }
       }
     }
-    const launched = await playNative(detail.episodeURL, detail.episodeName, resumeData.posMs, false, pl?.playlist, pl?.playlistIndex, detail.episodeId, false)
-    if (launched && shouldUseNativePlayer()) {
-      const posMs = await fetchAndSaveEpisodePosition(detail.episodeId)
+    const playRes = await playNative(detail.episodeURL, detail.episodeName, resumeData.posMs, false, pl?.playlist, pl?.playlistIndex, detail.episodeId, false)
+    if (playRes && playRes.success && shouldUseNativePlayer()) {
+      const lastPlayedId = playRes.lastPlayedMovieId || detail.episodeId
+      const posMs = await fetchAndSaveEpisodePosition(lastPlayedId)
       setProgressVersion(v => v + 1)
+
+      const lastPlayedEp = episodes.find(e => e.episodeId === lastPlayedId)
+      if (lastPlayedEp && selectedTvShowId) {
+        tvStorage.setJSON(`tvshow_resume_${selectedTvShowId}`, { episodeId: lastPlayedId, episodeName: lastPlayedEp.episodeName })
+        const epData = await fetchTvShowEpisodeList(selectedTvShowId, lastPlayedId)
+        if (epData.episodeDetails) {
+          setEpisodeDetail(epData.episodeDetails)
+          setSelectedEpisodeId(lastPlayedId)
+        }
+      }
+
+      const focusButtons = () => {
+        if (posMs > 10000) {
+          setFocus('tvshowdetail-resume')
+        } else {
+          setFocus('tvshowdetail-play')
+        }
+      }
+
       if (posMs > 10000) {
-        setResumeData({ episodeId: detail.episodeId, episodeName: detail.episodeName, posMs })
-        setTimeout(() => setFocus('tvshowdetail-resume'), 100)
+        setResumeData({ episodeId: lastPlayedId, episodeName: lastPlayedEp ? lastPlayedEp.episodeName : detail.episodeName, posMs })
+        setTimeout(focusButtons, 100)
       } else {
         setResumeData(null)
-        setTimeout(() => setFocus('tvshowdetail-play'), 100)
+        setTimeout(focusButtons, 100)
       }
       return
     }
-    if (!launched && !shouldUseNativePlayer()) {
+    if (playRes && !playRes.success && !shouldUseNativePlayer()) {
       navigate('player', {
         id: `tvshow-${detail.episodeId}`,
         title: detail.episodeName,
@@ -381,7 +484,7 @@ export function TvShowDetailScreen() {
         playlistIndex: pl?.playlistIndex,
       })
     }
-  }, [resumeData, selectedTvShowId, episodes, buildPlaylist, navigate, saveResumeEpisode])
+  }, [resumeData, selectedTvShowId, episodes, buildPlaylist, navigate, saveResumeEpisode, setFocus])
 
   const handleEpisodeSelect = useCallback(async (ep: EpisodeItem) => {
     if (!selectedTvShowId) return
@@ -441,11 +544,13 @@ export function TvShowDetailScreen() {
     )
   }
 
+  const activeEpisodeItem = episodeDetail ? episodes.find(e => e.episodeId === episodeDetail.episodeId) : null
+
   return (
     <FocusContext.Provider value={focusKey}>
       <div ref={ref} style={{ height: '100%', overflow: 'hidden', position: 'relative' }}>
         <div
-          ref={scrollRef}
+          ref={setScrollRef}
           style={{ height: '100%', overflowY: 'auto', overflowX: 'hidden' }}
           className="scrollbar-hide"
         >
@@ -467,20 +572,28 @@ export function TvShowDetailScreen() {
               <img
                 src={episodeDetail.episodeLogo}
                 alt={episodeDetail.episodeName}
-                style={{ width: 200, flexShrink: 0, borderRadius: 10, boxShadow: '0 8px 32px rgba(0,0,0,0.6)', objectFit: 'cover', aspectRatio: '16/9', opacity: loadingEpisodeDetail ? 0.5 : 1, transition: 'opacity 0.2s' }}
+                style={{ width: 350, height: 200, flexShrink: 0, borderRadius: 12, boxShadow: '0 8px 32px rgba(0,0,0,0.6)', objectFit: 'cover', opacity: loadingEpisodeDetail ? 0.5 : 1, transition: 'opacity 0.2s' }}
               />
 
               <div style={{ flex: 1, paddingTop: 4 }}>
-                {episodeDetail.episodeNo && episodeDetail.episodeNo.trim() && (
+                {((episodeDetail.episodeNo && episodeDetail.episodeNo.trim()) || (episodeDetail.episodeType && episodeDetail.episodeType.trim())) && (
                   <span style={{ background: 'rgba(229,9,20,0.8)', color: '#fff', fontSize: 11, padding: '2px 10px', borderRadius: 4, marginBottom: 8, display: 'inline-block' }}>
-                    {episodeDetail.episodeNo.trim()}
+                    {[
+                      episodeDetail.episodeNo && episodeDetail.episodeNo.trim(),
+                      episodeDetail.episodeType && episodeDetail.episodeType.trim()
+                    ].filter(Boolean).join(' · ')}
                   </span>
                 )}
                 <h1 style={{ color: '#fff', fontSize: 'clamp(18px, 2.8vw, 34px)', fontWeight: 700, margin: '6px 0 8px', lineHeight: 1.2 }}>
                   {episodeDetail.episodeName}
                 </h1>
+                {activeEpisodeItem?.episodeDate && (
+                  <div style={{ color: 'rgba(255,255,255,0.7)', fontSize: 14, fontWeight: 600, marginBottom: 12 }}>
+                    {activeEpisodeItem.episodeDate}
+                  </div>
+                )}
 
-                {episodeDetail.episodeDescription ? (
+                {episodeDetail.episodeDescription && episodeDetail.episodeDescription.trim() ? (
                   <p style={{
                     color: 'rgba(255,255,255,0.75)', fontSize: 12, lineHeight: 1.55, marginBottom: 14, maxWidth: 520,
                     overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical',
@@ -585,12 +698,20 @@ export function TvShowDetailScreen() {
                         />
                       )
                     })}
-                    {rowItems.length < EPISODE_COLS && Array.from({ length: EPISODE_COLS - rowItems.length }).map((_, i) => (
-                      <div key={`spacer-${i}`} style={{ flex: 1, aspectRatio: '16/8' }} />
-                    ))}
+                    {rowItems.length < EPISODE_COLS && Array.from({ length: EPISODE_COLS - rowItems.length }).map((_, i) => {
+                      const colIdx = rowItems.length + i
+                      return (
+                        <div key={`spacer-${i}`} style={{ flex: 1, aspectRatio: '16/8' }} />
+                      )
+                    })}
                   </div>
                 )
               })}
+              {loadingMore && (
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: 60, color: 'rgba(255,255,255,0.4)', fontSize: 13, marginTop: 12 }}>
+                  Loading more episodesâ€¦
+                </div>
+              )}
             </div>
           )}
         </div>
@@ -598,3 +719,7 @@ export function TvShowDetailScreen() {
     </FocusContext.Provider>
   )
 }
+
+
+
+

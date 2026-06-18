@@ -6,7 +6,7 @@ import { useAppStore } from '../store/appStore'
 import { playNative, shouldUseNativePlayer } from '../platform/nativeVideoPlayer'
 
 const COLS = 5
-const PAGE_COUNT = 20
+const PAGE_COUNT = 40
 
 let _liveTvSetFocusFn: ((key: string) => void) | null = null
 let _liveTvCardFocused = false
@@ -91,17 +91,7 @@ function ChannelCard({
           </span>
         </div>
       )}
-      <div style={{
-        position: 'absolute', bottom: 0, left: 0, right: 0,
-        background: 'linear-gradient(to top, rgba(0,0,0,0.9) 0%, transparent 100%)',
-        padding: '18px 6px 6px',
-        opacity: focused ? 1 : 0.8,
-        transition: 'opacity 0.15s',
-      }}>
-        <p style={{ color: '#fff', fontSize: 10, fontWeight: 600, textAlign: 'center', margin: 0, overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>
-          {item.title}
-        </p>
-      </div>
+
     </div>
   )
 }
@@ -205,7 +195,7 @@ export function LiveTvScreen() {
           paddingTop: 'clamp(14px, 2.5vh, 28px)', paddingBottom: 'clamp(8px, 1.5vh, 12px)',
           flexShrink: 0,
         }}>
-          <h1 className="text-tv-3xl font-bold text-white leading-tight">📡 Live TV</h1>
+          <h1 className="text-tv-3xl font-bold text-white leading-tight">Live TV</h1>
           <p className="text-white/50 text-tv-sm mt-1 mb-2">
             {loading ? 'Loading…' : `${channels.length} channels`}
           </p>

@@ -14,6 +14,7 @@ interface ContentRowProps {
   showLiveBadge?: boolean
   hideTextOverlay?: boolean
   onViewMore?: () => void
+  isFirstRow?: boolean
 }
 
 function ViewMoreCard({ focusKey, width, height, onSelect, onUp, onDown }: {
@@ -65,7 +66,7 @@ const LANDSCAPE_H = Math.round(BASE_W * 9 / 16)
 const PORTRAIT_W = Math.round(Math.max(110, Math.min(window.innerWidth * 0.115, 190)))
 const PORTRAIT_H = Math.round(PORTRAIT_W * 3 / 2)
 
-export function ContentRow({ row, onSelect, onItemFocused, focusKey, onUp, onDown, cardAspect = 'landscape', showLiveBadge = false, hideTextOverlay = false, onViewMore }: ContentRowProps) {
+export function ContentRow({ row, onSelect, onItemFocused, focusKey, onUp, onDown, cardAspect = 'landscape', showLiveBadge = false, hideTextOverlay = false, onViewMore, isFirstRow = false }: ContentRowProps) {
   const rowWrapperRef = useRef<HTMLDivElement>(null)
   const horizontalScrollRef = useRef<HTMLDivElement>(null)
 
@@ -73,18 +74,22 @@ export function ContentRow({ row, onSelect, onItemFocused, focusKey, onUp, onDow
   const cardH = cardAspect === 'portrait' ? PORTRAIT_H : LANDSCAPE_H
 
   const onFocus = useCallback(() => {
-    rowWrapperRef.current?.scrollIntoView({
-      behavior: 'smooth',
-      block: 'nearest',
-      inline: 'nearest',
-    })
-  }, [])
+    if (!isFirstRow) {
+      rowWrapperRef.current?.scrollIntoView({
+        behavior: 'smooth',
+        block: 'start',
+        inline: 'nearest',
+      })
+    }
+  }, [isFirstRow])
 
-  const { ref, focusKey: currentFocusKey } = useFocusable({
+  const { ref, focusKey: currentFocusKey, focused, hasFocusedChild } = useFocusable({
     focusKey,
     trackChildren: true,
     onFocus,
   })
+
+  const isRowFocused = focused || hasFocusedChild
 
   const handleCardFocus = useCallback((cardEl: HTMLElement | null) => {
     if (!cardEl || !horizontalScrollRef.current) return
@@ -105,8 +110,14 @@ export function ContentRow({ row, onSelect, onItemFocused, focusKey, onUp, onDow
       <div ref={rowWrapperRef} style={{ marginBottom: 14 }}>
         <div ref={ref}>
           <h2 style={{
-            color: '#fff', fontSize: 15, fontWeight: 600, letterSpacing: 0.3,
-            marginBottom: 10, paddingLeft: '5vw', paddingRight: '5vw',
+            fontSize: isRowFocused ? 24 : 15,
+            fontWeight: isRowFocused ? 800 : 600,
+            letterSpacing: 0.3,
+            marginBottom: 10,
+            paddingLeft: '5vw',
+            paddingRight: '5vw',
+            transition: 'all 0.2s ease-in-out',
+            color: isRowFocused ? '#fff' : 'rgba(255,255,255,0.45)',
           }}>
             {row.title}
           </h2>

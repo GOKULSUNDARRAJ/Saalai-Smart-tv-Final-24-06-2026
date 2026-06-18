@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { useAppStore } from '../store/appStore'
 import { mapKeyEvent, TVKey } from '../platform/keys'
-import { callActivationApi } from '../api/activationApi'
+import { callActivationApi, getOrCreateDeviceId } from '../api/activationApi'
 import { fetchMenuItems } from '../api/menuApi'
 
 const PAD_KEYS = [
@@ -16,13 +16,70 @@ const PIN_LENGTH = 6
 export function ActivationScreen() {
   const { setActivated, setMenuItems } = useAppStore()
   const [pin, setPin] = useState<string[]>([])
+  const deviceId = getOrCreateDeviceId()
   const [focusRow, setFocusRow] = useState(0)
   const [focusCol, setFocusCol] = useState(1)
   const [shake, setShake] = useState(false)
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
   const [success, setSuccess] = useState(false)
+  const [qrUrl, setQrUrl] = useState('')
   const shakeTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  useEffect(() => {
+    let stopped = false
+
+    async function pollQR() {
+      while (!stopped) {
+        try {
+          const formData = new FormData()
+          formData.append('token', deviceId)
+          const res = await fetch('https://staging.saalai.tv/saalai_app/QRCode', {
+            method: 'POST',
+            body: formData,
+          })
+          const data = await res.json()
+          console.log('QRCODE_POLL:', JSON.stringify(data))
+
+          if (data.result === 'true' || data.result === true) {
+            const targetUrl = data.response?.qrCodeURL ?? ''
+            // Set QR image on first successful response
+            if (targetUrl && !qrUrl) {
+              setQrUrl(`https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(targetUrl)}&bgcolor=ffffff&color=000000&margin=4`)
+            }
+
+            const status = data.response?.status
+            const code = data.response?.activationCode
+            // status=1 means QR was scanned and activation code is ready
+            if ((status === 1 || status === '1') && code) {
+              console.log('QR_ACTIVATION_CODE:', code)
+              stopped = true
+              // Auto-activate with the returned activation code
+              setLoading(true)
+              const result = await callActivationApi(code)
+              setLoading(false)
+              if (result.success) {
+                setSuccess(true)
+                const items = await fetchMenuItems()
+                setMenuItems(items)
+                setActivated()
+              } else {
+                setError(result.message)
+              }
+              return
+            }
+          }
+        } catch (err) {
+          console.error('QRCode poll error:', err)
+        }
+        // Wait 2 seconds before next poll
+        await new Promise(r => setTimeout(r, 2000))
+      }
+    }
+
+    pollQR()
+    return () => { stopped = true }
+  }, [deviceId])
 
   async function submitPin(code: string) {
     setLoading(true)
@@ -88,6 +145,9 @@ export function ActivationScreen() {
         e.preventDefault()
         setPin(prev => prev.slice(0, -1))
         setError('')
+      } else if (/^[0-9]$/.test(e.key)) {
+        e.preventDefault()
+        pressKey(e.key)
       }
     }
     window.addEventListener('keydown', handler)
@@ -107,47 +167,30 @@ export function ActivationScreen() {
       alignItems: 'center',
       justifyContent: 'center',
     }}>
-      <div style={{
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center',
-        width: '340px',
-      }}>
+      <div style={{ display: 'flex', alignItems: 'stretch', gap: '40px' }}>
+        <div style={{
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          justifyContent: 'center',
+          width: '340px',
+          background: 'rgba(255,255,255,0.03)',
+          border: '1px dashed rgba(255,255,255,0.15)',
+          borderRadius: '16px',
+          padding: '32px 24px',
+          textAlign: 'center',
+        }}>
 
-        <div style={{ display: 'flex', alignItems: 'center', marginBottom: '16px' }}>
           <div style={{
-            width: '40px', height: '40px', background: '#E8232A', borderRadius: '10px',
-            display: 'flex', alignItems: 'center', justifyContent: 'center', marginRight: '10px', flexShrink: 0,
+            color: 'rgba(255,255,255,0.5)',
+            fontSize: '14px',
+            fontWeight: 600,
+            textTransform: 'uppercase',
+            letterSpacing: '2px',
+            marginBottom: '20px'
           }}>
-            <svg viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg" style={{ width: '24px', height: '24px', fill: '#fff' }}>
-              <rect x="2" y="5" width="28" height="20" rx="3"/>
-              <rect x="11" y="26" width="10" height="2" rx="1"/>
-              <polygon points="13,10 13,22 23,16" fill="#E8232A"/>
-            </svg>
+            Enter Activation PIN
           </div>
-          <div style={{ display: 'flex', flexDirection: 'column', lineHeight: 1 }}>
-            <span style={{ fontFamily: "'Bebas Neue', cursive", fontSize: '26px', letterSpacing: '2px', color: '#fff' }}>
-              SAALAI <span style={{ color: '#E8232A' }}>TV</span>
-            </span>
-            <span style={{ fontFamily: "'DM Sans', sans-serif", fontSize: '9px', fontWeight: 500, letterSpacing: '1.5px', color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase', marginTop: '2px' }}>
-              Stream · Discover · Enjoy
-            </span>
-          </div>
-        </div>
-
-        <div style={{
-          color: '#e50914',
-          fontSize: '22px',
-          fontWeight: 'bold',
-          letterSpacing: '3px',
-          marginBottom: '6px',
-        }}>ACTIVATE YOUR DEVICE</div>
-
-        <div style={{
-          color: '#666',
-          fontSize: '13px',
-          marginBottom: '24px',
-        }}>Enter your 6-digit activation PIN</div>
 
         <div style={{
           display: 'flex',
@@ -196,7 +239,7 @@ export function ActivationScreen() {
                     key={key}
                     onClick={() => pressKey(key)}
                     style={{
-                      width: isAction ? '96px' : '76px',
+                      width: '76px',
                       height: '54px',
                       borderRadius: '8px',
                       border: 'none',
@@ -243,6 +286,78 @@ export function ActivationScreen() {
             fontWeight: 'bold',
           }}>✓ Activated! Loading…</div>
         )}
+        </div>
+
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          color: 'rgba(255,255,255,0.4)',
+          fontSize: '18px',
+          fontWeight: 'bold',
+          letterSpacing: '2px',
+        }}>
+          OR
+        </div>
+
+        {/* QR Code Display */}
+        <div style={{
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          justifyContent: 'center',
+          width: '340px',
+          background: 'rgba(255,255,255,0.03)',
+          border: '1px dashed rgba(255,255,255,0.15)',
+          borderRadius: '16px',
+          padding: '32px 24px',
+          textAlign: 'center'
+        }}>
+          <div style={{
+            color: 'rgba(255,255,255,0.5)',
+            fontSize: '14px',
+            fontWeight: 600,
+            textTransform: 'uppercase',
+            letterSpacing: '2px',
+            marginBottom: '20px'
+          }}>
+            Scan to Activate
+          </div>
+          <div style={{
+            background: '#fff',
+            borderRadius: '12px',
+            padding: '10px',
+            display: 'inline-flex',
+          }}>
+            {qrUrl ? (
+              <img
+                src={qrUrl}
+                alt="Device QR Code"
+                width={200}
+                height={200}
+                style={{ display: 'block', borderRadius: '4px' }}
+                onError={(e) => {
+                  const img = e.currentTarget
+                  if (!img.dataset.fallback) {
+                    img.dataset.fallback = '1'
+                    img.src = `https://chart.googleapis.com/chart?chs=200x200&cht=qr&chl=${encodeURIComponent(deviceId)}&choe=UTF-8`
+                  }
+                }}
+              />
+            ) : (
+              <div style={{ width: 200, height: 200, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#999', fontSize: 13 }}>Loading QR…</div>
+            )}
+          </div>
+          <div style={{
+            color: 'rgba(255,255,255,0.3)',
+            fontSize: '12px',
+            marginTop: '20px',
+            lineHeight: 1.5
+          }}>
+            Scan this QR code to identify your device or share with support.
+          </div>
+        </div>
+      </div>
 
         <style>{`
           @keyframes tv-shake {
@@ -253,7 +368,6 @@ export function ActivationScreen() {
             80%      { transform: translateX(5px); }
           }
         `}</style>
-      </div>
     </div>
   )
 }

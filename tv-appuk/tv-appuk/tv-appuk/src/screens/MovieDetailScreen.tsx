@@ -394,7 +394,7 @@ export function MovieDetailScreen() {
               <img
                 src={detail.logo}
                 alt={detail.name}
-                style={{ width: 110, flexShrink: 0, borderRadius: 10, boxShadow: '0 8px 32px rgba(0,0,0,0.6)', objectFit: 'cover', aspectRatio: '2/3' }}
+                style={{ width: 350, height: 200, flexShrink: 0, borderRadius: 12, boxShadow: '0 8px 32px rgba(0,0,0,0.6)', objectFit: 'cover' }}
               />
 
               <div style={{ flex: 1, paddingTop: 4 }}>
@@ -467,7 +467,7 @@ export function MovieDetailScreen() {
                           return false
                         }}
                       >
-                        ⏵ Resume ({resumeLabel})
+                        ▶ Resume · {resumeLabel}
                       </ActionButton>
                       <ActionButton
                         focusKey="moviedetail-back"

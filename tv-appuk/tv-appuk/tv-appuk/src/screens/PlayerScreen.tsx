@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from 'react'
+﻿import { useState, useEffect, useCallback, useRef } from 'react'
 import { useAppStore } from '../store/appStore'
 import { mapKeyEvent, TVKey } from '../platform/keys'
 import { CircularProgress } from '../components/ui/Spinner'
@@ -626,49 +626,66 @@ export function PlayerScreen() {
           <div style={{ color: 'rgba(255,255,255,0.5)', fontSize: 10, fontWeight: 700, letterSpacing: 2.5, textTransform: 'uppercase', marginBottom: 18, paddingLeft: 2 }}>
             More Like This
           </div>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, overflowY: 'auto', flex: 1 }} className="scrollbar-hide">
-            {relatedMovies.map((movie, idx) => (
-              <div
-                key={movie.id}
-                onClick={() => {
-                  const v = videoRef.current
-                  let posMs = 0
-                  if (v && localContent?.movieId && v.currentTime > 0) {
-                    posMs = Math.floor(v.currentTime * 1000)
-                    tvStorage.setItem(`resume_pos_${localContent.movieId}`, String(posMs))
-                    updateStreamTime(localContent.movieId, 1, posMs).catch(() => {})
-                  }
-                  navigateToMovieDetailFromPlayer(movie.id, posMs)
-                }}
-                style={{
-                  aspectRatio: '2/3',
-                  borderRadius: 8,
-                  overflow: 'hidden',
-                  position: 'relative',
-                  outline: mltFocusIdx === idx ? '3px solid #e50914' : '3px solid transparent',
-                  outlineOffset: 2,
-                  transform: mltFocusIdx === idx ? 'scale(1.05)' : 'scale(1)',
-                  transition: 'transform 0.15s, outline-color 0.12s',
-                  background: '#1a1a1a',
-                  cursor: 'pointer',
-                  zIndex: mltFocusIdx === idx ? 2 : 1,
-                }}
-              >
-                <img src={movie.logo} alt={movie.name} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
-                <div style={{
-                  position: 'absolute', bottom: 0, left: 0, right: 0,
-                  background: 'linear-gradient(to top, rgba(0,0,0,0.88) 0%, transparent 100%)',
-                  padding: '20px 4px 5px',
-                }}>
-                  <p style={{ color: '#fff', fontSize: 9, fontWeight: 600, textAlign: 'center', margin: 0, overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>
-                    {movie.name}
-                  </p>
+          <div style={{ overflowY: 'auto', flex: 1 }} className="scrollbar-hide">
+            {Array.from({ length: Math.ceil(relatedMovies.length / 2) }).map((_, rowIdx) => {
+              const rowItems = relatedMovies.slice(rowIdx * 2, (rowIdx + 1) * 2)
+              return (
+                <div key={rowIdx} style={{ display: 'flex', marginBottom: 10 }}>
+                  {rowItems.map((movie, colIdx) => {
+                    const idx = rowIdx * 2 + colIdx
+                    return (
+                      <div
+                        key={movie.id}
+                        onClick={() => {
+                          const v = videoRef.current
+                          let posMs = 0
+                          if (v && localContent?.movieId && v.currentTime > 0) {
+                            posMs = Math.floor(v.currentTime * 1000)
+                            tvStorage.setItem(`resume_pos_${localContent.movieId}`, String(posMs))
+                            updateStreamTime(localContent.movieId, 1, posMs).catch(() => {})
+                          }
+                          navigateToMovieDetailFromPlayer(movie.id, posMs)
+                        }}
+                        style={{
+                          flex: 1,
+                          aspectRatio: '2/3',
+                          borderRadius: 8,
+                          overflow: 'hidden',
+                          position: 'relative',
+                          outline: '3px solid transparent',
+                          outlineOffset: 2,
+                          transform: mltFocusIdx === idx ? 'scale(1.05)' : 'scale(1)',
+                          transition: 'transform 0.15s, outline-color 0.12s',
+                          background: '#1a1a1a',
+                          cursor: 'pointer',
+                          zIndex: mltFocusIdx === idx ? 2 : 1,
+                          marginRight: colIdx === 0 ? 10 : 0,
+                        }}
+                      >
+                        <img src={movie.logo} alt={movie.name} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+                        <div style={{
+                          position: 'absolute', bottom: 0, left: 0, right: 0,
+                          background: 'linear-gradient(to top, rgba(0,0,0,0.88) 0%, transparent 100%)',
+                          padding: '20px 4px 5px',
+                        }}>
+                          <p style={{ color: '#fff', fontSize: 9, fontWeight: 600, textAlign: 'center', margin: 0, overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>
+                            {movie.name}
+                          </p>
+                        </div>
+                      </div>
+                    )
+                  })}
+                  {rowItems.length < 2 && (
+                    <div style={{ flex: 1 }} />
+                  )}
                 </div>
-              </div>
-            ))}
+              )
+            })}
           </div>
         </div>
       </div>
     </div>
   )
 }
+
+

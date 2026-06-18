@@ -3,7 +3,7 @@ import { tvStorage } from '../platform/storage'
 const DEVICE_ID_KEY = 'tv_device_id'
 const ACCESS_TOKEN_KEY = 'tv_access_token'
 
-function getOrCreateDeviceId(): string {
+export function getOrCreateDeviceId(): string {
   let id = tvStorage.getItem(DEVICE_ID_KEY)
   if (!id) {
     id = Array.from({ length: 16 }, () =>

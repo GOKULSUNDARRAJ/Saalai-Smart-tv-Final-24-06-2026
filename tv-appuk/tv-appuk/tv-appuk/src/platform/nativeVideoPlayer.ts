@@ -7,7 +7,7 @@ import type { PlaylistItem } from '../store/appStore'
 const FALLBACK_URL = 'https://www.w3schools.com/html/mov_bbb.mp4'
 
 interface VideoPlayerPlugin {
-  play(options: { url: string; title?: string; fallbackUrl?: string; startPositionMs?: number; movieId?: number; forceFromBeginning?: boolean; isLive?: boolean; disableResumeSave?: boolean; playlistJson?: string; playlistIndex?: number; relatedJson?: string }): Promise<{ positionMs: number; blocked?: boolean; navigateToMovieId?: number }>
+  play(options: { url: string; title?: string; fallbackUrl?: string; startPositionMs?: number; movieId?: number; forceFromBeginning?: boolean; isLive?: boolean; disableResumeSave?: boolean; playlistJson?: string; playlistIndex?: number; relatedJson?: string }): Promise<{ positionMs: number; blocked?: boolean; navigateToMovieId?: number; lastPlayedMovieId?: number; url?: string; durationMs?: number }>
   endPlay(): Promise<void>
   getResumePosition(options: { movieId: number }): Promise<{ positionMs: number; durationMs?: number }>
   getResumePositionByTitle(options: { title: string }): Promise<{ positionMs: number }>
@@ -37,14 +37,14 @@ export function shouldUseNativePlayer(): boolean {
   }
 }
 
-export async function playNative(url: string, title?: string, startPositionMs?: number, isLive?: boolean, playlist?: PlaylistItem[], playlistIndex?: number, movieId?: number, disableResumeSave?: boolean, forceFromBeginning?: boolean): Promise<boolean> {
+export async function playNative(url: string, title?: string, startPositionMs?: number, isLive?: boolean, playlist?: PlaylistItem[], playlistIndex?: number, movieId?: number, disableResumeSave?: boolean, forceFromBeginning?: boolean): Promise<{ success: boolean; lastPlayedMovieId?: number }> {
   if (shouldUseTizenPlayer()) {
     useAppStore.getState().navigateToTizenPlayer({ url, title: title ?? '', movieId: movieId ?? 0, startPositionMs: startPositionMs ?? 0, forceFromBeginning: forceFromBeginning ?? false, isLive: isLive ?? false, disableResumeSave: disableResumeSave ?? false, playlist, playlistIndex })
-    return true
+    return { success: true }
   }
-  if (!shouldUseNativePlayer()) return false
-  if (isNativePlaying) return false
-  if (Date.now() - lastPlayEndMs < PLAY_DEBOUNCE_MS) return false
+  if (!shouldUseNativePlayer()) return { success: false }
+  if (isNativePlaying) return { success: false }
+  if (Date.now() - lastPlayEndMs < PLAY_DEBOUNCE_MS) return { success: false }
   isNativePlaying = true
   try {
     const fallbackUrl = url !== FALLBACK_URL ? FALLBACK_URL : ''
@@ -53,17 +53,50 @@ export async function playNative(url: string, title?: string, startPositionMs?: 
     if (result?.blocked) {
       isNativePlaying = false
       lastPlayEndMs = Date.now()
-      return false
+      return { success: false }
     }
     isNativePlaying = false
     lastPlayEndMs = Date.now()
     VideoPlayer.endPlay().catch(() => {})
-    return true
+
+    const positionMs = result?.positionMs ?? 0
+    const durationMs = result?.durationMs ?? 0
+    const resolvedUrl = result?.url || url
+    const playlistProgressStr = (result as any)?.playlistProgress || '{}'
+
+    if (!disableResumeSave) {
+      if (positionMs > 0) {
+        if (movieId && movieId > 0) {
+          tvStorage.setItem(`resume_pos_${movieId}`, String(positionMs))
+          if (durationMs > 0) tvStorage.setItem(`resume_dur_${movieId}`, String(durationMs))
+        } else if (resolvedUrl) {
+          tvStorage.setItem(`resume_pos_${resolvedUrl}`, String(positionMs))
+          if (durationMs > 0) tvStorage.setItem(`resume_dur_${resolvedUrl}`, String(durationMs))
+        }
+      }
+
+      try {
+        const progressMap = JSON.parse(playlistProgressStr)
+        for (const urlKey of Object.keys(progressMap)) {
+          const item = progressMap[urlKey]
+          if (item && item.positionMs > 0) {
+            tvStorage.setItem(`resume_pos_${urlKey}`, String(item.positionMs))
+            if (item.durationMs > 0) {
+              tvStorage.setItem(`resume_dur_${urlKey}`, String(item.durationMs))
+            }
+          }
+        }
+      } catch (e) {
+        console.error('Failed to parse playlist progress', e)
+      }
+    }
+
+    return { success: true, lastPlayedMovieId: result?.lastPlayedMovieId }
   } catch {
     isNativePlaying = false
     lastPlayEndMs = Date.now()
     VideoPlayer.endPlay().catch(() => {})
-    return false
+    return { success: false }
   }
 }
 
