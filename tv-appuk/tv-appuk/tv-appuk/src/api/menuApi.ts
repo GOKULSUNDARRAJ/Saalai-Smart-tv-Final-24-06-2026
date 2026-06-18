@@ -46,7 +46,7 @@ export async function fetchMenuItems(): Promise<MenuItem[]> {
   const token = tvStorage.getItem('tv_access_token') ?? ''
   if (!token) return getCachedMenu()
   try {
-    const res = await fetch('https://staging.saalai.tv/saalai_app/secure/appMenuList', {
+    const res = await fetch('https://staging.saalai.tv/saalai_app/secure/tvMenuList', {
       method: 'POST',
       headers: { Authorization: token },
     })

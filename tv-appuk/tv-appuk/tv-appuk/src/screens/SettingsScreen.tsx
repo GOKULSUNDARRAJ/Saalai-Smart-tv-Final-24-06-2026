@@ -1,28 +1,9 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { useFocusable, FocusContext } from '@noriginmedia/norigin-spatial-navigation'
 import { useAppStore } from '../store/appStore'
+import packageJson from '../../package.json'
 import type { Screen } from '../types/content'
-
-const SECTIONS = [
-  {
-    title: 'Account',
-    items: [
-      { id: 'account-plan',   label: 'Subscription Plan',  value: 'Premium',    icon: '★', navigate: 'contactus' as Screen },
-      { id: 'account-device', label: 'Device Name',        value: 'My TV',      icon: '📺' },
-      { id: 'account-logout', label: 'Sign Out',           value: '',           icon: '⎋', action: true },
-    ],
-  },
-  {
-    title: 'About',
-    items: [
-      { id: 'about-version',  label: 'App Version',        value: '1.0.0',      icon: 'ℹ' },
-      { id: 'about-device',   label: 'Platform',           value: 'Android TV', icon: '⊞' },
-      { id: 'about-reset',    label: 'Reset Activation',   value: '',           icon: '↺', action: true },
-    ],
-  },
-]
-
-const ALL_ITEMS = SECTIONS.flatMap(s => s.items)
+import { getMyProfile, type ProfileResponse } from '../api/authApi'
 
 let _settingsSetFocusFn: ((key: string) => void) | null = null
 let _settingsRowFocused = false
@@ -46,38 +27,46 @@ interface RowProps {
   label: string
   value: string
   action?: boolean
-  prevId: string | null
-  nextId: string | null
+  isFirst: boolean
+  upId: string | null
+  downId: string | null
+  leftId: string | null
+  rightId: string | null
   onActivate: () => void
   onFocused: () => void
 }
 
-function SettingRow({ id, icon, label, value, action, prevId, nextId, onActivate, onFocused }: RowProps) {
+function SettingRow({ id, icon, label, value, action, isFirst, upId, downId, leftId, rightId, onActivate, onFocused }: RowProps) {
   const domRef = useRef<HTMLDivElement | null>(null)
   const { ref: focusRef, focused, setFocus } = useFocusable({
     focusKey: getFocusKey(id),
     onEnterPress: onActivate,
     onFocus: onFocused,
     onArrowPress: (dir) => {
-      if (dir === 'up' && prevId) {
-        setFocus(getFocusKey(prevId))
+      if (dir === 'up') {
+        if (upId === 'nav-profile') { setFocus('nav-profile'); return false }
+        if (upId) { setFocus(getFocusKey(upId)); return false }
+        return false 
+      }
+      if (dir === 'down') {
+        if (downId) { setFocus(getFocusKey(downId)); return false }
+        return false 
+      }
+      if (dir === 'left') {
+        if (leftId) { setFocus(getFocusKey(leftId)); return false }
+        return false 
+      }
+      if (dir === 'right') {
+        if (rightId) { setFocus(getFocusKey(rightId)); return false }
         return false
       }
-      if (dir === 'down' && nextId) {
-        setFocus(getFocusKey(nextId))
-        return false
-      }
-      if (dir === 'up' && !prevId) {
-        setFocus('nav-profile')
-        return false
-      }
-      return false
+      return true
     },
   })
 
   useEffect(() => {
     if (!focused || !domRef.current) return
-    if (id === ALL_ITEMS[0].id) {
+    if (isFirst) {
       let parent = domRef.current.parentElement
       while (parent) {
         const ov = getComputedStyle(parent).overflowY
@@ -124,7 +113,6 @@ function SettingRow({ id, icon, label, value, action, prevId, nextId, onActivate
         alignItems: 'center',
         padding: '14px 20px',
         borderRadius: '10px',
-        marginBottom: '6px',
         background: focused ? 'rgba(229,9,20,0.18)' : 'rgba(255,255,255,0.04)',
         border: focused ? '1px solid rgba(229,9,20,0.5)' : '1px solid transparent',
         cursor: 'pointer',
@@ -280,6 +268,7 @@ function ConfirmDialog({ title, message, confirmLabel, onConfirm, onCancel }: Co
 
 export function SettingsScreen() {
   const { navigate, logout } = useAppStore()
+  const [profile, setProfile] = useState<ProfileResponse['response'] | null>(null)
   const [dialog, setDialog] = useState<{ type: 'logout' | 'reset' } | null>(null)
   const dialogTypeRef = useRef<'logout' | 'reset' | null>(null)
   const { ref, focusKey, setFocus } = useFocusable({ focusKey: 'settings-screen', trackChildren: true })
@@ -290,9 +279,40 @@ export function SettingsScreen() {
   }, [setFocus])
 
   useEffect(() => {
-    const t = setTimeout(() => setFocus('settings-row-account-plan'), 80)
+    getMyProfile().then(res => {
+      if (res && res.status && res.response) {
+        setProfile(res.response)
+      }
+    })
+  }, [])
+
+  useEffect(() => {
+    const t = setTimeout(() => setFocus('settings-row-account-profile'), 80)
     return () => clearTimeout(t)
   }, [setFocus])
+
+  const sections = [
+    {
+      title: 'Account',
+      items: [
+        { id: 'account-profile', label: 'Profile Name',      value: profile?.userName || 'Loading...', icon: '👤' },
+        { id: 'account-email',   label: 'Email',             value: profile?.userEmail || '-', icon: '✉' },
+        { id: 'account-mobile',  label: 'Mobile',            value: profile?.userMobile || '-', icon: '📱' },
+        { id: 'account-activate',label: 'Activation Date',   value: profile?.activationDate || '-', icon: '📅' },
+        { id: 'account-expire',  label: 'Subscription Ends', value: profile?.expireDate || '-', icon: '★' },
+        { id: 'account-device',  label: 'Device Box ID',     value: profile?.boxId ? String(profile.boxId) : '-', icon: '📺' },
+        { id: 'account-logout',  label: 'Sign Out',          value: '',           icon: '⎋', action: true },
+      ],
+    },
+    {
+      title: 'About',
+      items: [
+        { id: 'about-version',  label: 'App Version',        value: packageJson.version,      icon: 'ℹ' },
+        { id: 'about-device',   label: 'Platform',           value: 'Android TV', icon: '⊞' },
+      ],
+    },
+  ]
+  const allItems = sections.flatMap(s => s.items)
 
   const handleActivate = useCallback((id: string) => {
     if (id === 'account-logout') {
@@ -305,12 +325,7 @@ export function SettingsScreen() {
       setDialog({ type: 'reset' })
       return
     }
-    const allItems = SECTIONS.flatMap(s => s.items)
-    const item = allItems.find(i => i.id === id)
-    if (item && 'navigate' in item && item.navigate) {
-      navigate(item.navigate)
-    }
-  }, [navigate])
+  }, [navigate, logout])
 
   const handleConfirm = useCallback(() => {
     setDialog(null)
@@ -341,32 +356,11 @@ export function SettingsScreen() {
           <p style={{ color: 'rgba(255,255,255,0.45)', fontSize: '13px', marginTop: '4px', marginBottom: '12px' }}>
             App preferences and account
           </p>
-
-          {/* Expiration Warning Alert Banner (Mock UI) */}
-          <div style={{
-            marginTop: 16,
-            marginBottom: 8,
-            padding: '12px 20px',
-            borderRadius: 12,
-            background: 'linear-gradient(90deg, rgba(229,9,20,0.15) 0%, rgba(229,9,20,0.05) 100%)',
-            border: '1px solid rgba(229,9,20,0.4)',
-            display: 'flex',
-            alignItems: 'center',
-            gap: 12,
-            boxShadow: '0 4px 20px rgba(0,0,0,0.3)',
-          }}>
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" style={{ color: '#e50914', flexShrink: 0 }}>
-              <path d="M12 9V14M12 17.01L12.01 16.998M12 3L2 21H22L12 3Z" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
-            </svg>
-            <div style={{ color: '#fff', fontSize: 13, fontWeight: 500 }}>
-              Your subscription package will expire in <span style={{ color: '#e50914', fontWeight: 700 }}>5 days</span>. Please renew to continue uninterrupted streaming.
-            </div>
-          </div>
         </div>
 
         <div style={{ paddingLeft: '5vw', paddingRight: '5vw', paddingBottom: '64px' }}>
-          {SECTIONS.map((section, si) => {
-            const sectionStartIdx = SECTIONS.slice(0, si).reduce((n, s) => n + s.items.length, 0)
+          {sections.map((section, si) => {
+            const sectionStartIdx = sections.slice(0, si).reduce((n, s) => n + s.items.length, 0)
             return (
               <div key={section.title} style={{ marginBottom: '28px' }}>
                 <div style={{
@@ -380,25 +374,49 @@ export function SettingsScreen() {
                 }}>
                   {section.title}
                 </div>
-                {section.items.map((item, ii) => {
-                  const globalIdx = sectionStartIdx + ii
-                  const prevItem = ALL_ITEMS[globalIdx - 1] ?? null
-                  const nextItem = ALL_ITEMS[globalIdx + 1] ?? null
-                  return (
-                    <SettingRow
-                      key={item.id}
-                      id={item.id}
-                      icon={item.icon}
-                      label={item.label}
-                      value={item.value}
-                      action={item.action}
-                      prevId={prevItem?.id ?? null}
-                      nextId={nextItem?.id ?? null}
-                      onActivate={() => handleActivate(item.id)}
-                      onFocused={() => { _settingsRowFocused = true }}
-                    />
-                  )
-                })}
+                <div style={{
+                  display: 'grid',
+                  gridTemplateColumns: 'repeat(2, 1fr)',
+                  gap: '12px',
+                }}>
+                  {section.items.map((item, ii) => {
+                    const globalIdx = sectionStartIdx + ii
+                    
+                    let upId = null
+                    if (ii >= 2) upId = section.items[ii - 2].id
+                    else if (si > 0) upId = sections[si - 1].items[sections[si - 1].items.length - 1].id
+                    else upId = 'nav-profile'
+
+                    let downId = null
+                    if (ii + 2 < section.items.length) downId = section.items[ii + 2].id
+                    else if (ii < section.items.length - 1) downId = section.items[section.items.length - 1].id
+                    else if (si < sections.length - 1) downId = sections[si + 1].items[0].id
+
+                    let leftId = null
+                    if (ii % 2 === 1) leftId = section.items[ii - 1].id
+
+                    let rightId = null
+                    if (ii % 2 === 0 && ii + 1 < section.items.length) rightId = section.items[ii + 1].id
+
+                    return (
+                      <SettingRow
+                        key={item.id}
+                        id={item.id}
+                        icon={item.icon}
+                        label={item.label}
+                        value={item.value}
+                        action={'action' in item && item.action}
+                        isFirst={globalIdx === 0}
+                        upId={upId}
+                        downId={downId}
+                        leftId={leftId}
+                        rightId={rightId}
+                        onActivate={() => handleActivate(item.id)}
+                        onFocused={() => { _settingsRowFocused = true }}
+                      />
+                    )
+                  })}
+                </div>
               </div>
             )
           })}

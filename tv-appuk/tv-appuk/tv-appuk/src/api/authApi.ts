@@ -8,6 +8,23 @@ export interface RegisterParams {
   device_token: string
 }
 
+export interface ProfileResponse {
+  response: {
+    boxId: number
+    boxNumber: string
+    activationCode: number
+    activationDate: string
+    expireDate: string
+    userName: string
+    userEmail: string
+    userMobile: string
+    userCountry: string
+  }
+  message: string
+  error_type: string
+  status: boolean
+}
+
 export interface RegisterResponse {
   response: {
     userId: number
@@ -75,3 +92,47 @@ export const COUNTRIES: Country[] = [
   { id: '185', name: 'Saudi Arabia', code: '966' },
   { id: '39',  name: 'Sri Lanka', code: '94' },
 ]
+
+import { tvStorage } from '../platform/storage'
+import { checkAccessDenied } from './apiUtils'
+
+export async function getMyProfile(): Promise<ProfileResponse | null> {
+  const token = tvStorage.getItem('tv_access_token') ?? ''
+  if (!token || !token.includes('.')) return null
+  try {
+    const res = await fetch('https://staging.saalai.tv/saalai_app/secure/getMyProfile', {
+      method: 'POST',
+      headers: { Authorization: token },
+    })
+    if (!res.ok) return null
+    const text = await res.text()
+    const data = typeof text === 'string' ? JSON.parse(text) : text
+    if (checkAccessDenied(data)) return null
+    return data as ProfileResponse
+  } catch {
+    return null
+  }
+}
+
+export interface VersionResponse {
+  result: string
+  error_type: string
+  response: {
+    title: string
+    apk_name: string
+    version: string
+    apk_url: string
+  }
+}
+
+export async function getTVVersion(): Promise<VersionResponse | null> {
+  try {
+    const res = await fetch('https://staging.saalai.tv/saalai_app/getTVVersion', {
+      method: 'POST'
+    })
+    if (!res.ok) return null
+    return await res.json() as VersionResponse
+  } catch {
+    return null
+  }
+}

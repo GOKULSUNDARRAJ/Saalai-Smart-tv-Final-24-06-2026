@@ -4,6 +4,9 @@ import './index.css'
 import { App } from './App'
 import { platform } from './platform/index'
 import { initTizen } from './platform/tizenInit'
+import { setupFetchInterceptor } from './api/apiUtils'
+
+setupFetchInterceptor()
 
 if (platform === 'tizen') {
   initTizen()

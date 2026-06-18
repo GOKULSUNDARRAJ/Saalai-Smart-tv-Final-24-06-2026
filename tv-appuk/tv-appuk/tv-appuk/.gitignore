@@ -11,6 +11,10 @@ platforms/tizen/output/
 platforms/webos/output/
 platforms/androidtv/android/
 platforms/androidtv/.gradle/
+android/app/build/
+android/.gradle/
+android/app/.cxx/
+android/capacitor.build.gradle
 
 # IDE
 .vscode/

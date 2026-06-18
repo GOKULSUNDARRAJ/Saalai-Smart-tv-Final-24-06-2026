@@ -1,9 +1,12 @@
 import { useRef, useState, useEffect } from 'react'
+import { createPortal } from 'react-dom'
 import { useFocusable, FocusContext } from '@noriginmedia/norigin-spatial-navigation'
 import type { Screen } from '../../types/content'
 import { useAppStore } from '../../store/appStore'
 import type { MenuItem } from '../../api/menuApi'
 import { clearHomeCache } from '../../screens/HomeScreen'
+import { getMyProfile } from '../../api/authApi'
+import { mapKeyEvent, TVKey } from '../../platform/keys'
 
 const SCREEN_FIRST_FOCUS: Record<Screen, string> = {
   home:        'card-row-home-channels-0',
@@ -18,7 +21,7 @@ const SCREEN_FIRST_FOCUS: Record<Screen, string> = {
   radioplayer: 'radioplayer-station-0',
   browse:      'browse-cat-0',
   search:      'kb-0-0',
-  settings:    'settings-row-account-plan',
+  settings:    'settings-row-account-profile',
   detail:      'detail-play',
   player:      'player-screen',
   tizenplayer: 'player-screen',
@@ -153,7 +156,7 @@ function SearchNavItem({ onSelect, isActive }: { onSelect: () => void; isActive:
     onArrowPress: (dir) => {
       if (dir === 'up') return false
       if (dir === 'down') { setFocus(SCREEN_FIRST_FOCUS[currentScreen] ?? 'hero-play'); return false }
-      if (dir === 'left') return false
+      if (dir === 'left') { setFocus('nav-logo'); return false }
       if (dir === 'right') return true
       return true
     },
@@ -192,6 +195,147 @@ function SearchNavItem({ onSelect, isActive }: { onSelect: () => void; isActive:
         <line x1="16.5" y1="16.5" x2="22" y2="22" />
       </svg>
     </button>
+  )
+}
+
+function ProfilePopupItem({ label, value, id, onDown, onUp, onRight }: { label: string; value: string; id: string; onDown: () => void; onUp: () => void; onRight: () => void }) {
+  const { ref, focused } = useFocusable({
+    focusKey: id,
+    onArrowPress: (dir) => {
+      if (dir === 'up') { onUp(); return false; }
+      if (dir === 'down') { onDown(); return false; }
+      if (dir === 'right') { onRight(); return false; }
+      if (dir === 'left') return false;
+      return true;
+    }
+  })
+
+  return (
+    <div
+      ref={ref}
+      style={{
+        display: 'flex', flexDirection: 'column',
+        padding: '12px 16px',
+        borderRadius: 12,
+        background: focused ? '#E8F0FE' : 'rgba(255, 255, 255, 0.08)',
+        color: focused ? '#1a1a1a' : '#fff',
+        transition: 'all 0.2s',
+        marginBottom: 8,
+        minWidth: 220,
+        boxShadow: focused ? '0 6px 16px rgba(0,0,0,0.4)' : '0 2px 8px rgba(0,0,0,0.2)',
+        transform: focused ? 'scale(1.02)' : 'scale(1)',
+        border: focused ? '2px solid #fff' : '2px solid transparent',
+      }}
+    >
+      <span style={{ fontSize: 12, opacity: focused ? 0.8 : 0.6, fontWeight: 'bold', marginBottom: 4, textTransform: 'uppercase', letterSpacing: 0.5 }}>{label}</span>
+      <span style={{ fontSize: 16, fontWeight: 'bold' }}>{value}</span>
+    </div>
+  )
+}
+
+function ProfileLogoItem({ firstLetter, fullName, phoneNo, expireDate, onPopupChange }: { firstLetter: string; fullName: string; phoneNo: string; expireDate: string; onPopupChange: (isOpen: boolean) => void }) {
+  const currentScreen = useAppStore((s) => s.currentScreen)
+
+  const { ref: logoRef, focused: logoFocused, setFocus } = useFocusable({
+    focusKey: 'nav-logo',
+    onEnterPress: () => {}, 
+    onArrowPress: (dir) => {
+      if (dir === 'up') return false
+      if (dir === 'left') return false
+      if (dir === 'right') { setFocus('nav-search'); return false }
+      if (dir === 'down') {
+        setFocus('profile-item-0'); return false;
+      }
+      return true
+    }
+  })
+
+  const { ref: containerRef, hasFocusedChild } = useFocusable({
+    focusKey: 'profile-popup-container',
+    trackChildren: true,
+  })
+
+  const showPopup = logoFocused || hasFocusedChild;
+
+  useEffect(() => {
+    onPopupChange(showPopup)
+  }, [showPopup, onPopupChange])
+
+  useEffect(() => {
+    if (!showPopup) return
+    const onKey = (e: KeyboardEvent) => {
+      const key = mapKeyEvent(e)
+      if (key === TVKey.BACK) {
+        e.stopPropagation()
+        e.preventDefault()
+        setFocus(SCREEN_FIRST_FOCUS[currentScreen] ?? 'hero-play')
+      }
+    }
+    window.addEventListener('keydown', onKey, true)
+    return () => window.removeEventListener('keydown', onKey, true)
+  }, [showPopup, setFocus])
+
+  const items = [
+    { label: 'Name', value: fullName },
+    { label: 'Phone', value: phoneNo },
+    { label: 'Expires', value: expireDate ? expireDate.split(' ')[0] : '' }
+  ].filter(i => i.value)
+
+  return (
+    <FocusContext.Provider value="profile-popup-container">
+      <div style={{ position: 'relative', marginRight: 8, flexShrink: 0, zIndex: 100 }}>
+        <button
+          ref={logoRef}
+          style={{
+            width: 36, height: 36, background: '#E8232A', borderRadius: '50%',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            border: logoFocused ? '2px solid #fff' : '2px solid transparent',
+            outline: 'none',
+            cursor: 'pointer',
+            padding: 0,
+            transition: 'border 0.15s, transform 0.15s',
+            transform: logoFocused ? 'scale(1.05)' : 'scale(1)',
+          }}
+        >
+          {firstLetter ? (
+            <span style={{ color: '#fff', fontWeight: 'bold', fontSize: 18 }}>{firstLetter}</span>
+          ) : (
+            <svg viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg" style={{ width: 18, height: 18, fill: '#fff' }}>
+              <rect x="2" y="5" width="28" height="20" rx="3"/>
+              <rect x="11" y="26" width="10" height="2" rx="1"/>
+              <polygon points="13,10 13,22 23,16" fill="#E8232A"/>
+            </svg>
+          )}
+        </button>
+
+        {showPopup && (
+          <div ref={containerRef} style={{
+            position: 'absolute',
+            top: 50,
+            left: 0,
+            background: '#1a1a1a',
+            borderRadius: 16,
+            padding: '12px',
+            boxShadow: '0 8px 32px rgba(0,0,0,0.9)',
+            zIndex: 100,
+            display: 'flex',
+            flexDirection: 'column',
+          }}>
+            {items.map((item, i) => (
+              <ProfilePopupItem
+                key={i}
+                id={`profile-item-${i}`}
+                label={item.label}
+                value={item.value}
+                onUp={() => i === 0 ? setFocus('nav-logo') : setFocus(`profile-item-${i - 1}`)}
+                onDown={() => i === items.length - 1 ? false : setFocus(`profile-item-${i + 1}`)}
+                onRight={() => false}
+              />
+            ))}
+          </div>
+        )}
+      </div>
+    </FocusContext.Provider>
   )
 }
 
@@ -258,6 +402,24 @@ export function Sidebar() {
     trackChildren: true,
   })
 
+  const [firstLetter, setFirstLetter] = useState('')
+  const [fullName, setFullName] = useState('')
+  const [phoneNo, setPhoneNo] = useState('')
+  const [expireDate, setExpireDate] = useState('')
+  const [isPopupOpen, setIsPopupOpen] = useState(false)
+
+  useEffect(() => {
+    getMyProfile().then(profile => {
+      if (profile && profile.response) {
+        const name = profile.response.userName || profile.response.userMobile || 'User'
+        setFirstLetter(name.charAt(0).toUpperCase())
+        setFullName(name)
+        setPhoneNo(profile.response.userMobile || '')
+        setExpireDate(profile.response.expireDate || '')
+      }
+    }).catch(() => {})
+  }, [])
+
   const handleSelect = (screen: Screen) => {
     if (screen === 'home') {
       clearHomeCache()
@@ -281,21 +443,17 @@ export function Sidebar() {
           flexShrink: 0,
           background: 'transparent',
           position: 'relative',
-          zIndex: 10,
+          zIndex: isPopupOpen ? 100 : 10,
         }}
       >
         <div style={{ display: 'flex', alignItems: 'center', flexShrink: 0, marginRight: 12 }}>
-          <div style={{
-            width: 36, height: 36, background: '#E8232A', borderRadius: '50%',
-            display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
-            marginRight: 8,
-          }}>
-            <svg viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg" style={{ width: 18, height: 18, fill: '#fff' }}>
-              <rect x="2" y="5" width="28" height="20" rx="3"/>
-              <rect x="11" y="26" width="10" height="2" rx="1"/>
-              <polygon points="13,10 13,22 23,16" fill="#E8232A"/>
-            </svg>
-          </div>
+          <ProfileLogoItem 
+            firstLetter={firstLetter} 
+            fullName={fullName} 
+            phoneNo={phoneNo} 
+            expireDate={expireDate} 
+            onPopupChange={setIsPopupOpen}
+          />
           <SearchNavItem
             onSelect={() => handleSelect('search')}
             isActive={currentScreen === 'search'}

@@ -19,7 +19,21 @@ public class MainActivity extends BridgeActivity {
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
+        if (!isTaskRoot()) {
+            final android.content.Intent intent = getIntent();
+            final String intentAction = intent.getAction();
+            if (intent.hasCategory(android.content.Intent.CATEGORY_LAUNCHER) && intentAction != null && intentAction.equals(android.content.Intent.ACTION_MAIN)) {
+                finish();
+                return;
+            }
+            if (intent.hasCategory("android.intent.category.LEANBACK_LAUNCHER") && intentAction != null && intentAction.equals(android.content.Intent.ACTION_MAIN)) {
+                finish();
+                return;
+            }
+        }
+
         registerPlugin(VideoPlayerPlugin.class);
+        registerPlugin(ApkUpdaterPlugin.class);
         super.onCreate(savedInstanceState);
 
         WebView webView = getBridge().getWebView();
@@ -30,17 +44,6 @@ public class MainActivity extends BridgeActivity {
         settings.setDomStorageEnabled(true);
         settings.setJavaScriptEnabled(true);
         webView.addJavascriptInterface(new AndroidNativeBridge(), "AndroidNative");
-    }
-
-    @Override
-    public void onRestart() {
-        super.onRestart();
-        if (!VideoPlayerPlugin.isVideoActive) {
-            WebView webView = getBridge().getWebView();
-            if (webView != null) {
-                webView.post(() -> webView.reload());
-            }
-        }
     }
 
     @Override

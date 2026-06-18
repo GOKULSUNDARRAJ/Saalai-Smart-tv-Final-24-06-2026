@@ -24,6 +24,9 @@ import { ContactUsScreen } from './screens/ContactUsScreen'
 import { useAppStore } from './store/appStore'
 import { mapKeyEvent, TVKey } from './platform/keys'
 import { shouldUseNativePlayer, wasRecentNativePlayback } from './platform/nativeVideoPlayer'
+import { getTVVersion, VersionResponse } from './api/authApi'
+import { UpdateModal } from './components/ui/UpdateModal'
+import packageJson from '../package.json'
 
 init({
   debug: false,
@@ -44,6 +47,7 @@ setKeyMap({
 
 export function App() {
   const [showSplash, setShowSplash] = useState(true)
+  const [updateInfo, setUpdateInfo] = useState<VersionResponse | null>(null)
   const handleSplashDone = useCallback(() => setShowSplash(false), [])
   const { currentScreen, homeScrolled, openExitDialog, goBack } = useAppStore()
   const { ref, focusKey, setFocus } = useFocusable({
@@ -70,6 +74,18 @@ export function App() {
 
   const DETAIL_SCREENS = ['moviedetail', 'tvshowdetail', 'catchupdetail', 'detail']
   const isDetailScreen = DETAIL_SCREENS.includes(currentScreen)
+
+  useEffect(() => {
+    getTVVersion().then(res => {
+      if (res && res.result === 'true' && res.response) {
+        const appVer = parseFloat(packageJson.version)
+        const apiVer = parseFloat(res.response.version)
+        if (apiVer > appVer) {
+          setUpdateInfo(res)
+        }
+      }
+    })
+  }, [])
 
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
@@ -172,6 +188,15 @@ export function App() {
         )}
 
         <ExitDialog />
+
+        {updateInfo && (
+          <UpdateModal
+            title={updateInfo.response.title}
+            version={updateInfo.response.version}
+            apkUrl={updateInfo.response.apk_url}
+            onClose={() => setUpdateInfo(null)}
+          />
+        )}
       </div>
     </FocusContext.Provider>
   )
