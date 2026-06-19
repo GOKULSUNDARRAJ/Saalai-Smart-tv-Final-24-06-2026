@@ -90,15 +90,15 @@ function SearchCard({
         overflow: 'hidden',
         position: 'relative',
         cursor: 'pointer',
-        outline: (window as any).isLegacyTv ? 'none' : (focused ? '3px solid #e50914' : '3px solid transparent'),
-        boxShadow: (window as any).isLegacyTv && focused ? '0 0 0 3px #0a0a0a, 0 0 0 6px #e50914' : 'none',
+        border: focused ? '3px solid #e50914' : '3px solid transparent',
         outlineOffset: -1,
         transform: focused ? 'scale(1.05)' : 'scale(1)',
-        transition: 'transform 0.15s, outline-color 0.12s',
+        transition: 'transform 0.15s, border-color 0.12s',
         zIndex: focused ? 10 : 1,
         background: '#1a1a2e',
         flexShrink: 0,
         boxShadow: isMovie && focused ? '0 8px 32px rgba(229,9,20,0.35)' : isMovie ? '0 4px 16px rgba(0,0,0,0.5)' : 'none',
+        outline: 'none',
       }}
     >
       {!imgError ? (

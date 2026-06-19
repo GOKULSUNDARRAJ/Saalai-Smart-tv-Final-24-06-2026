@@ -66,74 +66,6 @@ export function FocusableCard({
         return false
       }
       if (onArrowPress) return onArrowPress(dir)
-import { useState, useCallback } from 'react'
-import { useFocusable } from '@noriginmedia/norigin-spatial-navigation'
-import type { ContentItem } from '../../types/content'
-
-interface FocusableCardProps {
-  item: ContentItem
-  onSelect?: (item: ContentItem) => void
-  onFocused?: (el: HTMLElement | null) => void
-  onItemFocused?: (item: ContentItem) => void
-  onArrowPress?: (dir: string) => boolean
-  focusKey?: string
-  prevFocusKey?: string | null
-  nextFocusKey?: string | null
-  width?: number
-  height?: number
-  portrait?: boolean
-  showLiveBadge?: boolean
-  hideTextOverlay?: boolean
-}
-
-const GRADIENT_COLORS = [
-  'from-red-900 to-red-700',
-  'from-blue-900 to-blue-700',
-  'from-purple-900 to-purple-700',
-  'from-green-900 to-green-700',
-  'from-yellow-900 to-yellow-700',
-  'from-pink-900 to-pink-700',
-  'from-indigo-900 to-indigo-700',
-  'from-teal-900 to-teal-700',
-]
-
-function getGradient(id: string): string {
-  let hash = 0
-  for (let i = 0; i < id.length; i++) hash = id.charCodeAt(i) + ((hash << 5) - hash)
-  return GRADIENT_COLORS[Math.abs(hash) % GRADIENT_COLORS.length]
-}
-
-export function FocusableCard({
-  item,
-  onSelect,
-  onFocused,
-  onItemFocused,
-  onArrowPress,
-  focusKey,
-  prevFocusKey,
-  nextFocusKey,
-  width = 320,
-  height = 180,
-  portrait = false,
-  showLiveBadge = false,
-  hideTextOverlay = false,
-}: FocusableCardProps) {
-  const [imgError, setImgError] = useState(false)
-
-  const { ref, focused, setFocus } = useFocusable({
-    focusKey,
-    onEnterPress: () => onSelect?.(item),
-    onFocus: () => { onFocused?.(ref.current); onItemFocused?.(item) },
-    onArrowPress: (dir) => {
-      if (dir === 'left') {
-        if (prevFocusKey) { setFocus(prevFocusKey); return false }
-        return false
-      }
-      if (dir === 'right') {
-        if (nextFocusKey) { setFocus(nextFocusKey); return false }
-        return false
-      }
-      if (onArrowPress) return onArrowPress(dir)
       return true
     },
   })
@@ -142,7 +74,7 @@ export function FocusableCard({
 
   return (
     <div style={{ position: 'relative', width, height, flexShrink: 0 }}>
-      {/* Universal Focus Ring */}
+      {/* Universal Focus Ring - uses border on a separate div to avoid outline rendering bugs on older WebViews */}
       <div style={{
         position: 'absolute',
         top: -6, left: -6, right: -6, bottom: -6,
