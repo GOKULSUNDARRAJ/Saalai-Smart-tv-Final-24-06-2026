@@ -217,7 +217,7 @@ export function LiveTvScreen() {
           style={{ flex: 1, overflowY: 'auto', overflowX: 'hidden' }}
           className="scrollbar-hide"
         >
-          <div style={{ paddingLeft: '5vw', paddingRight: '5vw', paddingTop: 16, paddingBottom: 32 }}>
+          <div style={{ paddingLeft: 'calc(5vw + 10px)', paddingRight: 'calc(5vw + 10px)', paddingTop: 16, paddingBottom: 32 }}>
             {loading ? (
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '30vh', color: 'rgba(255,255,255,0.4)', fontSize: 14 }}>
                 Loading…
