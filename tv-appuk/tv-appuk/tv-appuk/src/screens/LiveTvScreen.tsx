@@ -55,17 +55,21 @@ function ChannelCard({
   }, [focused])
 
   return (
-    <div style={{ flex: 1, aspectRatio: '16/9', position: 'relative' }}>
+    <div style={{ flex: 1, position: 'relative' }}>
+      {/* Padding hack to enforce 16:9 aspect ratio on older WebViews */}
+      <div style={{ paddingBottom: '56.25%' }} />
       {/* The actual card with focus ring drawn as border inside */}
       <div
         ref={mergedRef}
         onClick={onSelect}
         style={{
+          position: 'absolute',
+          top: 0,
+          left: 0,
           width: '100%',
           height: '100%',
           borderRadius: 12,
           overflow: 'hidden',
-          position: 'relative',
           border: focused ? '3px solid #e50914' : '3px solid transparent',
           transition: 'border-color 0.12s',
           background: '#1a1a1a',
