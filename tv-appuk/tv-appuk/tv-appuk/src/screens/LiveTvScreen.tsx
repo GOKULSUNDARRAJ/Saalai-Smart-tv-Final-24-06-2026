@@ -54,6 +54,53 @@ function ChannelCard({
     else if (eRect.bottom > pRect.bottom) parent.scrollTop += eRect.bottom - pRect.bottom + 16
   }, [focused])
 
+  const isLegacy = (window as any).isLegacyTv
+
+  const innerContent = (
+    <>
+      {!imgError ? (
+        <img
+          src={item.thumbnailUrl}
+          alt={item.title}
+          onError={() => setImgError(true)}
+          style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
+        />
+      ) : (
+        <div style={{
+          width: '100%', height: '100%',
+          background: 'linear-gradient(135deg, #1a1a2e, #16213e)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 8,
+        }}>
+          <span style={{ color: '#fff', fontSize: 11, fontWeight: 600, textAlign: 'center', lineHeight: 1.4 }}>
+            {item.title}
+          </span>
+        </div>
+      )}
+    </>
+  )
+
+  if (isLegacy) {
+    return (
+      <div style={{ flex: 1, position: 'relative' }}>
+        <div style={{ paddingBottom: '56.25%' }} />
+        <div
+          ref={mergedRef}
+          onClick={onSelect}
+          style={{
+            position: 'absolute', top: 0, left: 0, width: '100%', height: '100%',
+            borderRadius: 12, overflow: 'hidden',
+            border: focused ? '3px solid #e50914' : '3px solid transparent',
+            transition: 'border-color 0.12s',
+            background: '#1a1a1a', cursor: 'pointer',
+          }}
+        >
+          {innerContent}
+        </div>
+      </div>
+    )
+  }
+
+  // Modern TV rendering (Original morning code)
   return (
     <div
       ref={mergedRef}
@@ -73,25 +120,7 @@ function ChannelCard({
         cursor: 'pointer',
       }}
     >
-      {!imgError ? (
-        <img
-          src={item.thumbnailUrl}
-          alt={item.title}
-          onError={() => setImgError(true)}
-          style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
-        />
-      ) : (
-        <div style={{
-          width: '100%', height: '100%',
-          background: 'linear-gradient(135deg, #1a1a2e, #16213e)',
-          display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 8,
-        }}>
-          <span style={{ color: '#fff', fontSize: 11, fontWeight: 600, textAlign: 'center', lineHeight: 1.4 }}>
-            {item.title}
-          </span>
-        </div>
-      )}
-
+      {innerContent}
     </div>
   )
 }
