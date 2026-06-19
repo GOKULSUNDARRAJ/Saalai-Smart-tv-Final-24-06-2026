@@ -55,44 +55,54 @@ function ChannelCard({
   }, [focused])
 
   return (
-    <div
-      ref={mergedRef}
-      onClick={onSelect}
-      style={{
-        flex: 1,
-        aspectRatio: '16/9',
-        borderRadius: 12,
-        overflow: 'hidden',
-        position: 'relative',
-        outline: (window as any).isLegacyTv ? 'none' : (focused ? '3px solid #e50914' : '3px solid transparent'),
-        boxShadow: (window as any).isLegacyTv && focused ? '0 0 0 3px #0a0a0a, 0 0 0 6px #e50914' : 'none',
-        outlineOffset: 3,
-        transform: focused ? 'scale(1.06)' : 'scale(1)',
-        transition: 'transform 0.15s, outline-color 0.12s',
-        zIndex: focused ? 10 : 1,
-        background: '#1a1a1a',
-        cursor: 'pointer',
-      }}
-    >
-      {!imgError ? (
-        <img
-          src={item.thumbnailUrl}
-          alt={item.title}
-          onError={() => setImgError(true)}
-          style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
-        />
-      ) : (
-        <div style={{
-          width: '100%', height: '100%',
-          background: 'linear-gradient(135deg, #1a1a2e, #16213e)',
-          display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 8,
-        }}>
-          <span style={{ color: '#fff', fontSize: 11, fontWeight: 600, textAlign: 'center', lineHeight: 1.4 }}>
-            {item.title}
-          </span>
-        </div>
-      )}
+    <div style={{ flex: 1, position: 'relative', aspectRatio: '16/9' }}>
+      {/* Universal Focus Ring */}
+      <div style={{
+        position: 'absolute',
+        top: -6, left: -6, right: -6, bottom: -6,
+        borderRadius: 18,
+        border: focused ? '3px solid #e50914' : '3px solid transparent',
+        pointerEvents: 'none',
+        zIndex: 10,
+        transition: 'border-color 0.12s',
+      }} />
 
+      {/* The actual card */}
+      <div
+        ref={mergedRef}
+        onClick={onSelect}
+        style={{
+          width: '100%',
+          height: '100%',
+          borderRadius: 12,
+          overflow: 'hidden',
+          position: 'relative',
+          transform: focused ? 'scale(1.06)' : 'scale(1)',
+          transition: 'transform 0.15s',
+          zIndex: focused ? 10 : 1,
+          background: '#1a1a1a',
+          cursor: 'pointer',
+        }}
+      >
+        {!imgError ? (
+          <img
+            src={item.thumbnailUrl}
+            alt={item.title}
+            onError={() => setImgError(true)}
+            style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
+          />
+        ) : (
+          <div style={{
+            width: '100%', height: '100%',
+            background: 'linear-gradient(135deg, #1a1a2e, #16213e)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 8,
+          }}>
+            <span style={{ color: '#fff', fontSize: 11, fontWeight: 600, textAlign: 'center', lineHeight: 1.4 }}>
+              {item.title}
+            </span>
+          </div>
+        )}
+      </div>
     </div>
   )
 }

@@ -6,7 +6,11 @@ import { createRoot } from 'react-dom/client'
   const lacksAspectRatio = typeof CSS !== 'undefined' && CSS.supports && !CSS.supports('aspect-ratio', '16/9');
   const match = navigator.userAgent.match(/(?:Chrome|CrMo|CriOS|wv)\/(\d+)/);
   const isOldChrome = match && parseInt(match[1], 10) < 94;
-  (window as any).isLegacyTv = isOldChrome || lacksAspectRatio || !(window as any).CSS;
+  const ua = navigator.userAgent.toLowerCase();
+  const isToshiba = ua.includes('toshiba') || ua.includes('vidaa');
+  const isH96 = ua.includes('h96') || ua.includes('rk33') || ua.includes('box');
+  const isOldAndroid = ua.includes('android 9') || ua.includes('android 8') || ua.includes('android 7') || ua.includes('android 10') || ua.includes('android 11');
+  (window as any).isLegacyTv = !isToshiba && (isOldChrome || lacksAspectRatio || isH96 || isOldAndroid || !(window as any).CSS);
 })();
 
 import './index.css'
