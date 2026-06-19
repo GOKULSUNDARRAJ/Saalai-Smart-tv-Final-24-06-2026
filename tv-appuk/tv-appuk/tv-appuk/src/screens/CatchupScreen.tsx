@@ -20,9 +20,10 @@ export function tryCatchupBack(): boolean {
 }
 
 function ChannelCard({
-  item, focusKey, onArrow, onSelect, onFocused,
+  item, focusKey, onArrow, onSelect, onFocused, style
 }: {
-  item: CatchupChannel; focusKey: string; onArrow: (dir: string) => boolean; onSelect: () => void; onFocused: () => void
+  item: CatchupChannel; focusKey: string; onArrow: (dir: string) => boolean; onSelect: () => void; onFocused: () => void;
+  style?: React.CSSProperties
 }) {
   const [imgError, setImgError] = useState(false)
   const { ref, focused } = useFocusable({

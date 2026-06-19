@@ -20,9 +20,10 @@ export function tryRadioBack(): boolean {
 }
 
 function RadioCard({
-  item, focusKey, onArrow, onSelect, onFocused,
+  item, focusKey, onArrow, onSelect, onFocused, style
 }: {
-  item: RadioStation; focusKey: string; onArrow: (dir: string) => boolean; onSelect: () => void; onFocused: () => void
+  item: RadioStation; focusKey: string; onArrow: (dir: string) => boolean; onSelect: () => void; onFocused: () => void;
+  style?: React.CSSProperties
 }) {
   const [imgError, setImgError] = useState(false)
   const domRef = useRef<HTMLDivElement | null>(null)
@@ -223,6 +224,7 @@ export function RadioScreen() {
                     <RadioCard
                       key={item.channelId}
                       item={item}
+                      style={{ marginRight: colIdx < COLS - 1 ? 16 : 0 }}
                       focusKey={`radio-card-${rowIdx}-${colIdx}`}
                       onArrow={cardArrow(rowIdx, colIdx)}
                       onSelect={() => handleSelect(item)}
