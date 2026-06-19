@@ -21,9 +21,10 @@ export function tryLiveTvBack(): boolean {
 }
 
 function ChannelCard({
-  item, focusKey, onArrow, onSelect, onFocused,
+  item, focusKey, onArrow, onSelect, onFocused, style
 }: {
-  item: ContentItem; focusKey: string; onArrow: (dir: string) => boolean; onSelect: () => void; onFocused: () => void
+  item: ContentItem; focusKey: string; onArrow: (dir: string) => boolean; onSelect: () => void; onFocused: () => void;
+  style?: React.CSSProperties
 }) {
   const [imgError, setImgError] = useState(false)
   const domRef = useRef<HTMLDivElement | null>(null)
@@ -81,7 +82,7 @@ function ChannelCard({
 
   if (isLegacy) {
     return (
-      <div style={{ flex: 1, position: 'relative' }}>
+      <div style={{ flex: 1, position: 'relative', ...style }}>
         <div style={{ paddingBottom: '56.25%' }} />
         
         {/* Outer Focus Ring wrapper for legacy TV to give gap */}
@@ -127,6 +128,7 @@ function ChannelCard({
         zIndex: focused ? 10 : 1,
         background: '#1a1a1a',
         cursor: 'pointer',
+        ...style
       }}
     >
       {innerContent}
@@ -258,7 +260,7 @@ export function LiveTvScreen() {
                 {Array.from({ length: rows }).map((_, rowIdx) => {
                   const rowItems = channels.slice(rowIdx * COLS, (rowIdx + 1) * COLS)
                   return (
-                    <div key={rowIdx} style={{ display: 'flex', gap: 16, marginBottom: 16 }}>
+                    <div key={rowIdx} style={{ display: 'flex', marginBottom: 16 }}>
                       {rowItems.map((item, colIdx) => (
                         <ChannelCard
                           key={item.id}
@@ -267,11 +269,15 @@ export function LiveTvScreen() {
                           onArrow={cardArrow(rowIdx, colIdx)}
                           onSelect={() => handleSelect(item)}
                           onFocused={() => { _liveTvCardFocused = true }}
+                          style={{ marginRight: colIdx < COLS - 1 ? 16 : 0 }}
                         />
                       ))}
-                      {rowItems.length < COLS && Array.from({ length: COLS - rowItems.length }).map((_, i) => (
-                        <div key={`spacer-${i}`} style={{ flex: 1, aspectRatio: '16/9' }} />
-                      ))}
+                      {rowItems.length < COLS && Array.from({ length: COLS - rowItems.length }).map((_, i) => {
+                        const actualColIdx = rowItems.length + i;
+                        return (
+                          <div key={`spacer-${i}`} style={{ flex: 1, aspectRatio: '16/9', marginRight: actualColIdx < COLS - 1 ? 16 : 0 }} />
+                        )
+                      })}
                     </div>
                   )
                 })}
