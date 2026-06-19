@@ -55,46 +55,43 @@ function ChannelCard({
   }, [focused])
 
   return (
-    <div style={{ flex: 1, position: 'relative' }}>
-      {/* Padding hack to enforce 16:9 aspect ratio on older WebViews */}
-      <div style={{ paddingBottom: '56.25%' }} />
-      {/* The actual card with focus ring drawn as border inside */}
-      <div
-        ref={mergedRef}
-        onClick={onSelect}
-        style={{
-          position: 'absolute',
-          top: 0,
-          left: 0,
-          width: '100%',
-          height: '100%',
-          borderRadius: 12,
-          overflow: 'hidden',
-          border: focused ? '3px solid #e50914' : '3px solid transparent',
-          transition: 'border-color 0.12s',
-          background: '#1a1a1a',
-          cursor: 'pointer',
-        }}
-      >
-        {!imgError ? (
-          <img
-            src={item.thumbnailUrl}
-            alt={item.title}
-            onError={() => setImgError(true)}
-            style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
-          />
-        ) : (
-          <div style={{
-            width: '100%', height: '100%',
-            background: 'linear-gradient(135deg, #1a1a2e, #16213e)',
-            display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 8,
-          }}>
-            <span style={{ color: '#fff', fontSize: 11, fontWeight: 600, textAlign: 'center', lineHeight: 1.4 }}>
-              {item.title}
-            </span>
-          </div>
-        )}
-      </div>
+    <div
+      ref={mergedRef}
+      onClick={onSelect}
+      style={{
+        flex: 1,
+        aspectRatio: '16/9',
+        borderRadius: 12,
+        overflow: 'hidden',
+        position: 'relative',
+        outline: focused ? '3px solid #e50914' : '3px solid transparent',
+        outlineOffset: 3,
+        transform: focused ? 'scale(1.06)' : 'scale(1)',
+        transition: 'transform 0.15s, outline-color 0.12s',
+        zIndex: focused ? 10 : 1,
+        background: '#1a1a1a',
+        cursor: 'pointer',
+      }}
+    >
+      {!imgError ? (
+        <img
+          src={item.thumbnailUrl}
+          alt={item.title}
+          onError={() => setImgError(true)}
+          style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
+        />
+      ) : (
+        <div style={{
+          width: '100%', height: '100%',
+          background: 'linear-gradient(135deg, #1a1a2e, #16213e)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 8,
+        }}>
+          <span style={{ color: '#fff', fontSize: 11, fontWeight: 600, textAlign: 'center', lineHeight: 1.4 }}>
+            {item.title}
+          </span>
+        </div>
+      )}
+
     </div>
   )
 }
@@ -223,7 +220,7 @@ export function LiveTvScreen() {
                 {Array.from({ length: rows }).map((_, rowIdx) => {
                   const rowItems = channels.slice(rowIdx * COLS, (rowIdx + 1) * COLS)
                   return (
-                    <div key={rowIdx} style={{ display: 'flex', gap: 20, marginBottom: 20 }}>
+                    <div key={rowIdx} style={{ display: 'flex', gap: 16, marginBottom: 16 }}>
                       {rowItems.map((item, colIdx) => (
                         <ChannelCard
                           key={item.id}
