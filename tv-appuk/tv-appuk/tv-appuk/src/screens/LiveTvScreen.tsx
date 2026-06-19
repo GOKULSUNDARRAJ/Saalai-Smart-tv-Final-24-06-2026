@@ -231,7 +231,7 @@ export function LiveTvScreen() {
                 {Array.from({ length: rows }).map((_, rowIdx) => {
                   const rowItems = channels.slice(rowIdx * COLS, (rowIdx + 1) * COLS)
                   return (
-                    <div key={rowIdx} style={{ display: 'flex', gap: 16, marginBottom: 16 }}>
+                    <div key={rowIdx} style={{ display: 'flex', gap: 28, marginBottom: 28 }}>
                       {rowItems.map((item, colIdx) => (
                         <ChannelCard
                           key={item.id}
