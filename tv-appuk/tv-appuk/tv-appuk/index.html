@@ -16,8 +16,10 @@
     <div id="root"></div>
     <script>
       (function() {
-        var match = navigator.userAgent.match(/Chrome\/(\d+)/);
-        window.isLegacyTv = match && parseInt(match[1], 10) < 84;
+        var lacksAspectRatio = typeof CSS !== 'undefined' && CSS.supports && !CSS.supports('aspect-ratio', '16/9');
+        var match = navigator.userAgent.match(/(?:Chrome|CrMo|CriOS|wv)\/(\d+)/);
+        var isOldChrome = match && parseInt(match[1], 10) < 84;
+        window.isLegacyTv = isOldChrome || lacksAspectRatio || !window.CSS;
       })();
     </script>
     <script type="module" src="/src/main.tsx"></script>
