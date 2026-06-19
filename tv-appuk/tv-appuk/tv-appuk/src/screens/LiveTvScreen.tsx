@@ -83,14 +83,23 @@ function ChannelCard({
     return (
       <div style={{ flex: 1, position: 'relative' }}>
         <div style={{ paddingBottom: '56.25%' }} />
+        
+        {/* Outer Focus Ring wrapper for legacy TV to give gap */}
+        <div style={{
+          position: 'absolute', top: -5, left: -5, right: -5, bottom: -5,
+          borderRadius: 16,
+          border: focused ? '3px solid #e50914' : '3px solid transparent',
+          pointerEvents: 'none', zIndex: 10,
+          transition: 'border-color 0.12s',
+        }} />
+
+        {/* Card Content */}
         <div
           ref={mergedRef}
           onClick={onSelect}
           style={{
             position: 'absolute', top: 0, left: 0, width: '100%', height: '100%',
             borderRadius: 12, overflow: 'hidden',
-            border: focused ? '3px solid #e50914' : '3px solid transparent',
-            transition: 'border-color 0.12s',
             background: '#1a1a1a', cursor: 'pointer',
           }}
         >
