@@ -91,9 +91,10 @@ function GenrePill({
 }
 
 function ShowCard({
-  item, focusKey, onArrow, onSelect, onFocused,
+  item, focusKey, onArrow, onSelect, onFocused, style
 }: {
-  item: TvShowItem; focusKey: string; onArrow: (dir: string) => boolean; onSelect: () => void; onFocused: () => void
+  item: TvShowItem; focusKey: string; onArrow: (dir: string) => boolean; onSelect: () => void; onFocused: () => void;
+  style?: React.CSSProperties
 }) {
   const [imgError, setImgError] = useState(false)
   const cardRef = useRef<HTMLDivElement | null>(null)
@@ -129,6 +130,62 @@ function ShowCard({
     }
   }, [focused])
 
+  const isLegacy = (window as any).isLegacyTv
+
+  const innerContent = (
+    <div style={{ width: '100%', height: '100%', borderRadius: 12, overflow: 'hidden', background: '#1a1a1a', position: 'relative' }}>
+      {!imgError ? (
+        <img
+          src={item.logo}
+          alt={item.name}
+          onError={() => setImgError(true)}
+          style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
+        />
+      ) : (
+        <div style={{
+          width: '100%', height: '100%',
+          background: 'linear-gradient(135deg, #1a1a2e, #16213e)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 8,
+        }}>
+          <span style={{ color: '#fff', fontSize: 11, fontWeight: 600, textAlign: 'center', lineHeight: 1.4 }}>
+            {item.name}
+          </span>
+        </div>
+      )}
+    </div>
+  )
+
+  if (isLegacy) {
+    return (
+      <div style={{ flex: 1, position: 'relative', ...style }}>
+        <div style={{ paddingBottom: '50%' }} />
+        
+        {/* Outer Focus Ring wrapper for legacy TV to give gap */}
+        <div style={{
+          position: 'absolute', top: -5, left: -5, right: -5, bottom: -5,
+          borderRadius: 16,
+          border: focused ? '3px solid #e50914' : '3px solid transparent',
+          pointerEvents: 'none', zIndex: 10,
+          transition: 'border-color 0.12s',
+        }} />
+
+        {/* Card Content */}
+        <div
+          ref={setRef}
+          onClick={onSelect}
+          style={{
+            position: 'absolute', top: 0, left: 0, width: '100%', height: '100%',
+            borderRadius: 12, overflow: 'hidden',
+            background: '#1a1a1a', cursor: 'pointer',
+          }}
+        >
+          {innerContent}
+        </div>
+      </div>
+    )
+  }
+
+  // Modern TV rendering
   return (
     <div
       ref={setRef}
@@ -137,36 +194,17 @@ function ShowCard({
         flex: 1,
         aspectRatio: '16/8',
         borderRadius: 12,
-        outline: (window as any).isLegacyTv ? 'none' : (focused ? '3px solid #e50914' : '3px solid transparent'),
-        boxShadow: (window as any).isLegacyTv && focused ? '0 0 0 3px #0a0a0a, 0 0 0 6px #e50914' : 'none',
+        outline: focused ? '3px solid #e50914' : '3px solid transparent',
         outlineOffset: 3,
         transform: focused ? 'scale(1.06)' : 'scale(1)',
         transition: 'transform 0.15s, outline-color 0.12s',
         zIndex: focused ? 10 : 1,
         cursor: 'pointer',
         position: 'relative',
+        ...style
       }}
     >
-      <div style={{ width: '100%', height: '100%', borderRadius: 12, overflow: 'hidden', background: '#1a1a1a', position: 'relative' }}>
-        {!imgError ? (
-          <img
-            src={item.logo}
-            alt={item.name}
-            onError={() => setImgError(true)}
-            style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
-          />
-        ) : (
-          <div style={{
-            width: '100%', height: '100%',
-            background: 'linear-gradient(135deg, #1a1a2e, #16213e)',
-            display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 8,
-          }}>
-            <span style={{ color: '#fff', fontSize: 11, fontWeight: 600, textAlign: 'center', lineHeight: 1.4 }}>
-              {item.name}
-            </span>
-          </div>
-        )}
-      </div>
+      {innerContent}
     </div>
   )
 }
@@ -344,7 +382,7 @@ export function TvShowsScreen() {
                 {Array.from({ length: rows }).map((_, rowIdx) => {
                   const rowItems = shows.slice(rowIdx * COLS, (rowIdx + 1) * COLS)
                   return (
-                    <div key={rowIdx} style={{ display: 'flex', gap: 16, marginBottom: 16, overflow: 'visible' }}>
+                    <div key={rowIdx} style={{ display: 'flex', marginBottom: 16, overflow: 'visible' }}>
                       {rowItems.map((item, colIdx) => {
                         const fk = `tvshow-card-${rowIdx}-${colIdx}`
                         return (
@@ -360,12 +398,16 @@ export function TvShowsScreen() {
                               navigateToTvShowDetail(item.id)
                             }}
                             onFocused={() => notifyTvShowsFocusLevel('card', selectedGenre)}
+                            style={{ marginRight: colIdx < COLS - 1 ? 16 : 0 }}
                           />
                         )
                       })}
-                      {rowItems.length < COLS && Array.from({ length: COLS - rowItems.length }).map((_, i) => (
-                        <div key={`spacer-${i}`} style={{ flex: 1, aspectRatio: '16/8' }} />
-                      ))}
+                      {rowItems.length < COLS && Array.from({ length: COLS - rowItems.length }).map((_, i) => {
+                        const actualColIdx = rowItems.length + i;
+                        return (
+                          <div key={`spacer-${i}`} style={{ flex: 1, aspectRatio: '16/8', marginRight: actualColIdx < COLS - 1 ? 16 : 0 }} />
+                        )
+                      })}
                     </div>
                   )
                 })}

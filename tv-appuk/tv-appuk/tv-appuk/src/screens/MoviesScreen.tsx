@@ -118,9 +118,10 @@ function GenrePill({
 }
 
 function MovieCard({
-  item, focusKey, onArrow, onSelect, onFocused,
+  item, focusKey, onArrow, onSelect, onFocused, style
 }: {
-  item: MovieItem; focusKey: string; onArrow: (dir: string) => boolean; onSelect: () => void; onFocused: (rect?: DOMRect) => void
+  item: MovieItem; focusKey: string; onArrow: (dir: string) => boolean; onSelect: () => void; onFocused: (rect?: DOMRect) => void;
+  style?: React.CSSProperties
 }) {
   const [imgError, setImgError] = useState(false)
   const domRef = useRef<HTMLDivElement | null>(null)
@@ -159,26 +160,10 @@ function MovieCard({
     }
   }, [focused])
 
-  return (
-    <div
-      ref={mergedRef}
-      onClick={onSelect}
-      style={{
-        flex: 1,
-        aspectRatio: '2/3',
-        borderRadius: 12,
-        overflow: 'hidden',
-        position: 'relative',
-        outline: (window as any).isLegacyTv ? 'none' : (focused ? '3px solid #e50914' : '3px solid transparent'),
-        boxShadow: (window as any).isLegacyTv && focused ? '0 0 0 3px #0a0a0a, 0 0 0 6px #e50914' : 'none',
-        outlineOffset: 3,
-        transform: focused ? 'scale(1.06)' : 'scale(1)',
-        transition: 'transform 0.15s, outline-color 0.12s',
-        zIndex: focused ? 10 : 1,
-        background: '#1a1a1a',
-        cursor: 'pointer',
-      }}
-    >
+  const isLegacy = (window as any).isLegacyTv
+
+  const innerContent = (
+    <div style={{ width: '100%', height: '100%', borderRadius: 12, overflow: 'hidden', background: '#1a1a1a', position: 'relative' }}>
       {!imgError ? (
         <img
           src={item.logo}
@@ -199,12 +184,66 @@ function MovieCard({
       )}
     </div>
   )
+
+  if (isLegacy) {
+    return (
+      <div style={{ flex: 1, position: 'relative', ...style }}>
+        <div style={{ paddingBottom: '150%' }} />
+        
+        {/* Outer Focus Ring wrapper for legacy TV to give gap */}
+        <div style={{
+          position: 'absolute', top: -5, left: -5, right: -5, bottom: -5,
+          borderRadius: 16,
+          border: focused ? '3px solid #e50914' : '3px solid transparent',
+          pointerEvents: 'none', zIndex: 10,
+          transition: 'border-color 0.12s',
+        }} />
+
+        {/* Card Content */}
+        <div
+          ref={mergedRef}
+          onClick={onSelect}
+          style={{
+            position: 'absolute', top: 0, left: 0, width: '100%', height: '100%',
+            borderRadius: 12, overflow: 'hidden',
+            background: '#1a1a1a', cursor: 'pointer',
+          }}
+        >
+          {innerContent}
+        </div>
+      </div>
+    )
+  }
+
+  // Modern TV rendering
+  return (
+    <div
+      ref={mergedRef}
+      onClick={onSelect}
+      style={{
+        flex: 1,
+        aspectRatio: '2/3',
+        borderRadius: 12,
+        outline: focused ? '3px solid #e50914' : '3px solid transparent',
+        outlineOffset: 3,
+        transform: focused ? 'scale(1.06)' : 'scale(1)',
+        transition: 'transform 0.15s, outline-color 0.12s',
+        zIndex: focused ? 10 : 1,
+        cursor: 'pointer',
+        position: 'relative',
+        ...style
+      }}
+    >
+      {innerContent}
+    </div>
+  )
 }
 
 function ContinueCard({
-  item, focusKey, onArrow, onSelect, onFocused,
+  item, focusKey, onArrow, onSelect, onFocused, style
 }: {
-  item: MovieItem; focusKey: string; onArrow: (dir: string) => boolean; onSelect: () => void; onFocused: (rect?: DOMRect) => void
+  item: MovieItem; focusKey: string; onArrow: (dir: string) => boolean; onSelect: () => void; onFocused: (rect?: DOMRect) => void;
+  style?: React.CSSProperties
 }) {
   const [imgError, setImgError] = useState(false)
   const domRef = useRef<HTMLDivElement | null>(null)
@@ -246,26 +285,10 @@ function ContinueCard({
   const progress = getContinueProgress(item)
   const timeLeft = item.channelDuration?.replace(' left', '') ?? ''
 
-  return (
-    <div
-      ref={mergedRef}
-      onClick={onSelect}
-      style={{
-        flex: 1,
-        aspectRatio: '16/9',
-        borderRadius: 12,
-        overflow: 'hidden',
-        position: 'relative',
-        outline: (window as any).isLegacyTv ? 'none' : (focused ? '3px solid #e50914' : '3px solid transparent'),
-        boxShadow: (window as any).isLegacyTv && focused ? '0 0 0 3px #0a0a0a, 0 0 0 6px #e50914' : 'none',
-        outlineOffset: 3,
-        transform: focused ? 'scale(1.04)' : 'scale(1)',
-        transition: 'transform 0.15s, outline-color 0.12s',
-        zIndex: focused ? 10 : 1,
-        background: '#1a1a1a',
-        cursor: 'pointer',
-      }}
-    >
+  const isLegacy = (window as any).isLegacyTv
+
+  const innerContent = (
+    <div style={{ width: '100%', height: '100%', borderRadius: 12, overflow: 'hidden', background: '#1a1a1a', position: 'relative' }}>
       {!imgError ? (
         <img
           src={item.logo}
@@ -302,6 +325,59 @@ function ContinueCard({
           }} />
         </div>
       </div>
+    </div>
+  )
+
+  if (isLegacy) {
+    return (
+      <div style={{ flex: 1, position: 'relative', ...style }}>
+        <div style={{ paddingBottom: '56.25%' }} />
+        
+        {/* Outer Focus Ring wrapper for legacy TV to give gap */}
+        <div style={{
+          position: 'absolute', top: -5, left: -5, right: -5, bottom: -5,
+          borderRadius: 16,
+          border: focused ? '3px solid #e50914' : '3px solid transparent',
+          pointerEvents: 'none', zIndex: 10,
+          transition: 'border-color 0.12s',
+        }} />
+
+        {/* Card Content */}
+        <div
+          ref={mergedRef}
+          onClick={onSelect}
+          style={{
+            position: 'absolute', top: 0, left: 0, width: '100%', height: '100%',
+            borderRadius: 12, overflow: 'hidden',
+            background: '#1a1a1a', cursor: 'pointer',
+          }}
+        >
+          {innerContent}
+        </div>
+      </div>
+    )
+  }
+
+  // Modern TV rendering
+  return (
+    <div
+      ref={mergedRef}
+      onClick={onSelect}
+      style={{
+        flex: 1,
+        aspectRatio: '16/9',
+        borderRadius: 12,
+        outline: focused ? '3px solid #e50914' : '3px solid transparent',
+        outlineOffset: 3,
+        transform: focused ? 'scale(1.04)' : 'scale(1)',
+        transition: 'transform 0.15s, outline-color 0.12s',
+        zIndex: focused ? 10 : 1,
+        cursor: 'pointer',
+        position: 'relative',
+        ...style
+      }}
+    >
+      {innerContent}
     </div>
   )
 }
@@ -788,7 +864,7 @@ export function MoviesScreen() {
                     Array.from({ length: rows }).map((_, rowIdx) => {
                       const rowItems = movies.slice(rowIdx * activeCols, (rowIdx + 1) * activeCols)
                       return (
-                        <div key={rowIdx} style={{ display: 'flex', gap: 16, marginBottom: 16 }}>
+                        <div key={rowIdx} style={{ display: 'flex', marginBottom: 16 }}>
                           {rowItems.map((item, colIdx) => {
                             const fk = `movie-card-${rowIdx}-${colIdx}`
                             return isContinueCat ? (
@@ -805,6 +881,7 @@ export function MoviesScreen() {
                                   navigateToMovieDetail(item.id)
                                 }}
                                 onFocused={() => notifyMoviesFocusLevel('card', selectedGenre)}
+                                style={{ marginRight: colIdx < activeCols - 1 ? 16 : 0 }}
                               />
                             ) : (
                               <MovieCard
