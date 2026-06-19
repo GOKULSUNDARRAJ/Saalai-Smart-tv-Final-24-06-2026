@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import { createPortal } from 'react-dom'
 import { useFocusable, FocusContext } from '@noriginmedia/norigin-spatial-navigation'
 import ApkUpdater from '../../plugins/ApkUpdater'
@@ -20,32 +20,76 @@ export function UpdateModal({ title, version, apkUrl, onClose }: UpdateModalProp
     isFocusBoundary: true,
   })
 
+  const handleUpdate = async () => {
+    if (isDownloading) return
+    try {
+      const { granted } = await ApkUpdater.checkInstallPermission().catch(() => ({ granted: true }))
+      if (!granted) {
+        localStorage.setItem('pending_update_install', 'true')
+      }
+      
+      setIsDownloading(true)
+      setDownloadProgress(0)
+      
+      const listener = await ApkUpdater.addListener('onProgress', (info: any) => {
+        setDownloadProgress(info.progress)
+      })
+
+      await ApkUpdater.downloadAndInstall({ url: apkUrl, version: version })
+      
+      // When it succeeds (e.g. file already existed or finished downloading)
+      setDownloadProgress(100)
+      
+      if (!granted) {
+        // If they didn't have permission, they were likely just sent to Settings.
+        // Setup a one-time resume when they come back.
+        const handleVis = async () => {
+          if (document.visibilityState === 'visible') {
+            document.removeEventListener('visibilitychange', handleVis)
+            const check = await ApkUpdater.checkInstallPermission().catch(() => ({ granted: false }))
+            if (check.granted) {
+              // They granted it! Re-trigger installation.
+              setTimeout(() => {
+                handleUpdate()
+              }, 500)
+            }
+          }
+        }
+        document.addEventListener('visibilitychange', handleVis)
+        // Clean up if the modal closes before they return
+        setTimeout(() => document.removeEventListener('visibilitychange', handleVis), 60000)
+      }
+
+      setTimeout(() => {
+        setIsDownloading(false)
+        listener.remove()
+      }, 1500)
+      
+    } catch (e) {
+      console.error('Update failed:', e)
+      setIsDownloading(false)
+    }
+  }
+
+  useEffect(() => {
+    // If the OS killed the app when the user granted permission, we can check localStorage
+    // to auto-resume the installation on boot.
+    if (localStorage.getItem('pending_update_install') === 'true') {
+      localStorage.removeItem('pending_update_install')
+      ApkUpdater.checkInstallPermission().then(check => {
+        if (check.granted) {
+          // Auto-resume since they just granted permission and came back
+          setTimeout(() => {
+            handleUpdate()
+          }, 800)
+        }
+      }).catch(() => {})
+    }
+  }, [])
+
   const { ref: updateRef, focused: updateFocused } = useFocusable({
     focusKey: 'update-btn',
-    onEnterPress: async () => {
-      if (isDownloading) return
-      try {
-        setIsDownloading(true)
-        setDownloadProgress(0)
-        
-        const listener = await ApkUpdater.addListener('onProgress', (info: any) => {
-          setDownloadProgress(info.progress)
-        })
-
-        await ApkUpdater.downloadAndInstall({ url: apkUrl, version: version })
-        
-        // When it succeeds (e.g. file already existed or finished downloading)
-        setDownloadProgress(100)
-        setTimeout(() => {
-          setIsDownloading(false)
-          listener.remove()
-        }, 1500)
-        
-      } catch (e) {
-        console.error('Update failed:', e)
-        setIsDownloading(false)
-      }
-    },
+    onEnterPress: handleUpdate,
     onArrowPress: (dir) => {
       if (isDownloading) return false
       if (dir === 'down') { setFocus('close-btn'); return false; }
@@ -77,6 +121,23 @@ export function UpdateModal({ title, version, apkUrl, onClose }: UpdateModalProp
     const t3 = setTimeout(() => setFocus('update-btn'), 600)
     return () => { clearTimeout(t1); clearTimeout(t2); clearTimeout(t3) }
   }, [setFocus])
+  const onCloseRef = useRef(onClose)
+  onCloseRef.current = onClose
+
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      const k = e.keyCode
+      if (k === 27 || k === 4 || k === 10009 || k === 461) {
+        if (!isDownloading) {
+          e.preventDefault()
+          e.stopImmediatePropagation()
+          onCloseRef.current()
+        }
+      }
+    }
+    window.addEventListener('keydown', handler, true)
+    return () => window.removeEventListener('keydown', handler, true)
+  }, [isDownloading])
 
   if (typeof document === 'undefined' || !document.body) return null
 
@@ -114,6 +175,7 @@ export function UpdateModal({ title, version, apkUrl, onClose }: UpdateModalProp
 
         <button
           ref={updateRef}
+          onClick={handleUpdate}
           style={{
             background: updateFocused ? '#fff' : '#333',
             color: updateFocused ? '#000' : '#fff',

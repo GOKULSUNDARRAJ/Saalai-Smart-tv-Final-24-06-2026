@@ -35,6 +35,20 @@ public class ApkUpdaterPlugin extends Plugin {
     private Runnable progressRunnable;
 
     @PluginMethod
+    public void checkInstallPermission(PluginCall call) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            boolean canInstall = getContext().getPackageManager().canRequestPackageInstalls();
+            JSObject ret = new JSObject();
+            ret.put("granted", canInstall);
+            call.resolve(ret);
+        } else {
+            JSObject ret = new JSObject();
+            ret.put("granted", true);
+            call.resolve(ret);
+        }
+    }
+
+    @PluginMethod
     public void downloadAndInstall(PluginCall call) {
         String url = call.getString("url");
         String version = call.getString("version", "latest");

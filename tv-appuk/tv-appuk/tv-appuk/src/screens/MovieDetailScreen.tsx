@@ -10,11 +10,12 @@ import { tvStorage } from '../platform/storage'
 const RELATED_COLS = 6
 
 function RelatedCard({
-  item, focusKey, onArrow, onSelect,
+  item, focusKey, onArrow, onSelect, style
 }: {
   item: MovieItem; focusKey: string
   onArrow: (dir: string) => boolean
   onSelect: () => void
+  style?: React.CSSProperties
 }) {
   const [imgError, setImgError] = useState(false)
   const domRef = useRef<HTMLDivElement | null>(null)
@@ -50,7 +51,7 @@ function RelatedCard({
   }, [focused])
 
   return (
-    <div style={{ flex: 1 }}>
+    <div style={{ flex: 1, ...style }}>
       <div style={{ position: 'relative', width: '100%', paddingBottom: '150%' }}>
         <div
           ref={mergedRef}
@@ -105,7 +106,7 @@ function MetaRow({ label, value }: { label: string; value: string }) {
 }
 
 function ActionButton({
-  focusKey, primary, children, onPress, onArrow, scrollToTop, onUp,
+  focusKey, primary, children, onPress, onArrow, scrollToTop, onUp, style,
 }: {
   focusKey: string
   primary?: boolean
@@ -114,6 +115,7 @@ function ActionButton({
   onArrow: (dir: string) => boolean
   scrollToTop: () => void
   onUp: () => void
+  style?: React.CSSProperties
 }) {
   const { ref, focused } = useFocusable({
     focusKey,
@@ -130,7 +132,7 @@ function ActionButton({
       ref={ref}
       onClick={onPress}
       style={{
-        display: 'flex', alignItems: 'center', gap: 8,
+        display: 'flex', alignItems: 'center', gap: (window as any).isLegacyTv ? 0 : 8,
         padding: '10px 28px', borderRadius: 8, cursor: 'pointer', outline: 'none',
         border: primary ? 'none' : '2px solid rgba(255,255,255,0.3)',
         background: primary
@@ -144,6 +146,7 @@ function ActionButton({
           ? (primary ? '0 0 0 3px rgba(229,9,20,0.4)' : '0 0 0 3px rgba(255,255,255,0.2)')
           : 'none',
         transition: 'transform 0.12s, box-shadow 0.12s, background 0.12s',
+        ...style,
       }}
     >
       {children}
@@ -386,16 +389,16 @@ export function MovieDetailScreen() {
             <img
               src={detail.logo}
               alt=""
-              style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', opacity: 0.22 }}
+              style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, width: '100%', height: '100%', objectFit: 'cover', opacity: 0.22 }}
             />
-            <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to right, #0a0a0a 0%, rgba(10,10,10,0.88) 55%, rgba(10,10,10,0.5) 100%)' }} />
-            <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to bottom, transparent 50%, #0a0a0a 100%)' }} />
+            <div style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, background: 'linear-gradient(to right, #0a0a0a 0%, rgba(10,10,10,0.88) 55%, rgba(10,10,10,0.5) 100%)' }} />
+            <div style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, background: 'linear-gradient(to bottom, transparent 50%, #0a0a0a 100%)' }} />
 
-            <div style={{ position: 'relative', zIndex: 2, display: 'flex', alignItems: 'flex-start', padding: '20px 5vw 20px', gap: 24 }}>
+            <div style={{ position: 'relative', zIndex: 2, display: 'flex', alignItems: 'flex-start', padding: '20px 5vw 20px', gap: (window as any).isLegacyTv ? 0 : 24 }}>
               <img
                 src={detail.logo}
                 alt={detail.name}
-                style={{ width: 350, height: 200, flexShrink: 0, borderRadius: 12, boxShadow: '0 8px 32px rgba(0,0,0,0.6)', objectFit: 'cover' }}
+                style={{ width: 350, height: 200, flexShrink: 0, borderRadius: 12, boxShadow: '0 8px 32px rgba(0,0,0,0.6)', objectFit: 'cover', marginRight: (window as any).isLegacyTv ? 24 : 0 }}
               />
 
               <div style={{ flex: 1, paddingTop: 4 }}>
@@ -408,11 +411,11 @@ export function MovieDetailScreen() {
                   {detail.name}
                 </h1>
 
-                <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 8, marginBottom: 10, color: 'rgba(255,255,255,0.55)', fontSize: 12 }}>
-                  {detail.releaseYear && <span>{detail.releaseYear}</span>}
-                  {detail.duration && <><span>·</span><span>{detail.duration}</span></>}
-                  {detail.director && <><span>·</span><span>Dir: {detail.director}</span></>}
-                  {detail.music && <><span>·</span><span>Music: {detail.music}</span></>}
+                <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: (window as any).isLegacyTv ? 0 : 8, marginBottom: 10, color: 'rgba(255,255,255,0.55)', fontSize: 12 }}>
+                  {detail.releaseYear && <span style={{ marginRight: (window as any).isLegacyTv ? 8 : 0 }}>{detail.releaseYear}</span>}
+                  {detail.duration && <><span style={{ marginRight: (window as any).isLegacyTv ? 8 : 0 }}>·</span><span style={{ marginRight: (window as any).isLegacyTv ? 8 : 0 }}>{detail.duration}</span></>}
+                  {detail.director && <><span style={{ marginRight: (window as any).isLegacyTv ? 8 : 0 }}>·</span><span style={{ marginRight: (window as any).isLegacyTv ? 8 : 0 }}>Dir: {detail.director}</span></>}
+                  {detail.music && <><span style={{ marginRight: (window as any).isLegacyTv ? 8 : 0 }}>·</span><span>Music: {detail.music}</span></>}
                 </div>
 
                 {detail.description && (
@@ -430,9 +433,8 @@ export function MovieDetailScreen() {
                   </p>
                 )}
 
-                <div style={{ display: 'flex', gap: 16 }}>
-                  <ActionButton
-                    focusKey="moviedetail-play"
+                <div style={{ display: 'flex', gap: (window as any).isLegacyTv ? 0 : 16 }}>
+                  <ActionButton style={{ marginRight: (window as any).isLegacyTv ? 16 : 0 }} focusKey="moviedetail-play"
                     primary
                     onPress={handlePlay}
                     scrollToTop={scrollToTop}
@@ -453,8 +455,7 @@ export function MovieDetailScreen() {
                   </ActionButton>
                   {resumeMs > 0 ? (
                     <>
-                      <ActionButton
-                        focusKey="moviedetail-resume"
+                      <ActionButton style={{ marginRight: (window as any).isLegacyTv ? 16 : 0 }} focusKey="moviedetail-resume"
                         onPress={handleResume}
                         scrollToTop={scrollToTop}
                         onUp={() => {}}
@@ -470,8 +471,7 @@ export function MovieDetailScreen() {
                       >
                         ▶ Resume · {resumeLabel}
                       </ActionButton>
-                      <ActionButton
-                        focusKey="moviedetail-back"
+                      <ActionButton style={{ marginRight: (window as any).isLegacyTv ? 16 : 0 }} focusKey="moviedetail-back"
                         onPress={handleBack}
                         scrollToTop={scrollToTop}
                         onUp={() => {}}
@@ -484,12 +484,11 @@ export function MovieDetailScreen() {
                           return false
                         }}
                       >
-                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M15 5L8 12L15 19" stroke="currentColor" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round"/></svg> Back
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" style={{ marginRight: (window as any).isLegacyTv ? 8 : 0 }}><path d="M15 5L8 12L15 19" stroke="currentColor" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round"/></svg> Back
                       </ActionButton>
                     </>
                   ) : (
-                    <ActionButton
-                      focusKey="moviedetail-back"
+                    <ActionButton style={{ marginRight: (window as any).isLegacyTv ? 16 : 0 }} focusKey="moviedetail-back"
                       onPress={handleBack}
                       scrollToTop={scrollToTop}
                       onUp={() => {}}
@@ -516,18 +515,19 @@ export function MovieDetailScreen() {
               {Array.from({ length: relatedRows }).map((_, rowIdx) => {
                 const rowItems = detail.related.slice(rowIdx * RELATED_COLS, (rowIdx + 1) * RELATED_COLS)
                 return (
-                  <div key={rowIdx} style={{ display: 'flex', gap: 12, marginBottom: 12 }}>
+                  <div key={rowIdx} style={{ display: 'flex', gap: (window as any).isLegacyTv ? 0 : 12, marginBottom: 12 }}>
                     {rowItems.map((item, colIdx) => (
                       <RelatedCard
                         key={item.id}
                         item={item}
+                        style={{ marginRight: (window as any).isLegacyTv && colIdx < RELATED_COLS - 1 ? 12 : 0 }}
                         focusKey={`related-card-${rowIdx}-${colIdx}`}
                         onArrow={relatedArrow(rowIdx, colIdx)}
                         onSelect={() => navigateToMovieDetail(item.id)}
                       />
                     ))}
                     {rowItems.length < RELATED_COLS && Array.from({ length: RELATED_COLS - rowItems.length }).map((_, i) => (
-                      <div key={i} style={{ flex: 1 }}>
+                      <div key={i} style={{ flex: 1, marginRight: (window as any).isLegacyTv && (rowItems.length + i) < RELATED_COLS - 1 ? 12 : 0 }}>
                         <div style={{ width: '100%', paddingBottom: '150%' }} />
                       </div>
                     ))}

@@ -11,9 +11,9 @@ const INNER_R = 38
 const BAR_H = 9
 const BAR_W = 3
 
-function CircularVisualizer({ logo, name, playing }: { logo: string; name: string; playing: boolean }) {
+function CircularVisualizer({ logo, name, playing, style }: { logo: string; name: string; playing: boolean; style?: React.CSSProperties }) {
   return (
-    <div style={{ position: 'relative', width: 'clamp(100px,12vh,148px)', aspectRatio: '1/1', flexShrink: 0 }}>
+    <div style={{ position: 'relative', width: 140, height: 140, flexShrink: 0, ...style }}>
       <style>{`
         @keyframes cv-bar {
           0%   { transform: scaleY(0.15); }
@@ -21,7 +21,7 @@ function CircularVisualizer({ logo, name, playing }: { logo: string; name: strin
           100% { transform: scaleY(0.15); }
         }
       `}</style>
-      <svg viewBox="0 0 100 100" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%' }}>
+      <svg viewBox="0 0 100 100" style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, width: '100%', height: '100%' }}>
         {Array.from({ length: BAR_COUNT }).map((_, i) => {
           const angle = (i / BAR_COUNT) * 360
           const duration = 0.4 + (i % 7) * 0.08
@@ -47,12 +47,13 @@ function CircularVisualizer({ logo, name, playing }: { logo: string; name: strin
         })}
       </svg>
       <div style={{
-        position: 'absolute', inset: '14%',
+        position: 'absolute', top: '14%', left: '14%', right: '14%', bottom: '14%',
         borderRadius: '50%', overflow: 'hidden',
         border: '3px solid rgba(229,9,20,0.6)',
         boxShadow: '0 0 40px rgba(229,9,20,0.35)',
+        background: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center'
       }}>
-        <img src={logo} alt={name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+        <img src={logo} alt={name} style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }} />
       </div>
     </div>
   )
@@ -182,7 +183,7 @@ function StationItem({
         onSelectRef.current()
       }}
       style={{
-        display: 'flex', alignItems: 'center', gap: 10,
+        display: 'flex', alignItems: 'center',
         padding: '10px 12px', borderRadius: 10, cursor: 'pointer',
         background: focused ? 'rgba(229,9,20,0.2)' : isActive ? 'rgba(229,9,20,0.1)' : 'rgba(255,255,255,0.04)',
         border: focused ? '2px solid #e50914' : isActive ? '2px solid rgba(229,9,20,0.5)' : '2px solid transparent',
@@ -190,10 +191,10 @@ function StationItem({
         flexShrink: 0, minWidth: 0,
       }}
     >
-      <div style={{ width: 44, height: 44, borderRadius: '50%', overflow: 'hidden', flexShrink: 0, background: '#1a1a2e' }}>
+      <div style={{ marginRight: 10, width: 44, height: 44, borderRadius: '50%', overflow: 'hidden', flexShrink: 0, background: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
         {!imgError ? (
           <img src={item.channelLogo} alt={item.channelName} onError={() => setImgError(true)}
-            style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+            style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }} />
         ) : (
           <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
             <span style={{ color: '#fff', fontSize: 9, fontWeight: 700, textAlign: 'center' }}>{item.channelName.slice(0, 2)}</span>
@@ -232,6 +233,10 @@ export function RadioPlayerScreen() {
   const [loading, setLoading] = useState(true)
   const [playing, setPlaying] = useState(false)
   const [buffering, setBuffering] = useState(false)
+  const [loadingMore, setLoadingMore] = useState(false)
+  const [hasMore, setHasMore] = useState(true)
+  const pageRef = useRef(1)
+  const scrollRef = useRef<HTMLDivElement>(null)
   const playingRef = useRef(false)
   const audioRef = useRef<HTMLAudioElement | null>(null)
 
@@ -254,6 +259,43 @@ export function RadioPlayerScreen() {
       }
     })
   }, [selectedRadioChannelId, setFocus])
+
+  const loadMore = useCallback(async () => {
+    if (loadingMore || !hasMore || !detail) return
+    setLoadingMore(true)
+    const offset = pageRef.current * 20
+    const { fetchRadioList } = await import('../api/radioApi')
+    const result = await fetchRadioList(offset, 20)
+    
+    setDetail(prev => {
+      if (!prev) return prev
+      const existingIds = new Set(prev.radioList.map(r => r.channelId))
+      const newItems = result.items.filter(r => !existingIds.has(r.channelId))
+      return {
+        ...prev,
+        radioList: [...prev.radioList, ...newItems]
+      }
+    })
+    
+    setLoadingMore(false)
+    pageRef.current += 1
+    if (result.items.length === 0) setHasMore(false)
+  }, [loadingMore, hasMore, detail])
+
+  const handleScroll = useCallback(() => {
+    const el = scrollRef.current
+    if (!el || loadingMore || !hasMore) return
+    if (el.scrollHeight - el.scrollTop - el.clientHeight < 300) {
+      loadMore()
+    }
+  }, [loadingMore, hasMore, loadMore])
+
+  useEffect(() => {
+    const el = scrollRef.current
+    if (!el) return
+    el.addEventListener('scroll', handleScroll)
+    return () => el.removeEventListener('scroll', handleScroll)
+  }, [handleScroll])
 
   useEffect(() => {
     if (!current) return
@@ -341,7 +383,7 @@ export function RadioPlayerScreen() {
       <div ref={ref} style={{ height: '100%', display: 'flex', flexDirection: 'column', overflow: 'hidden', position: 'relative' }}>
 
         <div style={{
-          position: 'absolute', inset: 0, zIndex: 0,
+          position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, zIndex: 0,
           background: 'rgba(0,0,0,0.45)',
         }} />
 
@@ -354,18 +396,23 @@ export function RadioPlayerScreen() {
           paddingBottom: 'clamp(12px,1.8vh,20px)',
           paddingLeft: 'clamp(16px,4vw,48px)',
           paddingRight: 'clamp(16px,4vw,48px)',
-          gap: 'clamp(16px,2.5vw,32px)',
           borderBottom: '1px solid rgba(255,255,255,0.08)',
         }}>
-          <CircularVisualizer logo={current.channelLogo} name={current.channelName} playing={playing} />
+          <CircularVisualizer 
+            logo={current.channelLogo} 
+            name={current.channelName} 
+            playing={playing} 
+            style={{ marginRight: 'clamp(16px,2.5vw,32px)' }}
+          />
 
-          <div style={{ display: 'flex', flexDirection: 'column', flex: 1, minWidth: 0, gap: 6 }}>
+          <div style={{ display: 'flex', flexDirection: 'column', flex: 1, minWidth: 0 }}>
             <div style={{
               display: 'inline-flex', alignSelf: 'flex-start',
               background: playing ? '#e50914' : 'rgba(255,255,255,0.15)', color: '#fff',
               fontSize: 10, fontWeight: 700, letterSpacing: 2,
               padding: '3px 10px', borderRadius: 999,
               transition: 'background 0.3s',
+              marginBottom: 6
             }}>
               {playing ? 'NOW PLAYING' : 'PAUSED'}
             </div>
@@ -375,6 +422,7 @@ export function RadioPlayerScreen() {
               fontSize: 'clamp(18px, 2.4vw, 32px)',
               margin: 0, lineHeight: 1.2,
               overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis',
+              marginBottom: 6
             }}>
               {current.channelName}
             </h2>
@@ -398,6 +446,8 @@ export function RadioPlayerScreen() {
           </div>
 
           <div
+            ref={scrollRef}
+            onScroll={handleScroll}
             style={{ flex: 1, overflowY: 'auto', overflowX: 'hidden', padding: '0 clamp(16px,4vw,48px) 24px' }}
             className="scrollbar-hide"
           >
@@ -432,6 +482,16 @@ export function RadioPlayerScreen() {
                 </div>
               )
             })}
+            {loadingMore && (
+              <div style={{ display: 'flex', justifyContent: 'center', padding: '16px 0', color: 'rgba(255,255,255,0.4)', fontSize: 13 }}>
+                Loading more…
+              </div>
+            )}
+            {!hasMore && stationList.length > 0 && (
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: 40, color: 'rgba(255,255,255,0.2)', fontSize: 12 }}>
+                — end —
+              </div>
+            )}
           </div>
         </div>
       </div>

@@ -284,7 +284,7 @@ function ProfileLogoItem({ firstLetter, fullName, phoneNo, expireDate, onPopupCh
   return (
     <FocusContext.Provider value="profile-popup-container">
       <div style={{ position: 'relative', marginRight: 8, flexShrink: 0, zIndex: 100 }}>
-        <button
+        <div
           ref={logoRef}
           style={{
             width: 36, height: 36, background: '#E8232A', borderRadius: '50%',
@@ -292,7 +292,6 @@ function ProfileLogoItem({ firstLetter, fullName, phoneNo, expireDate, onPopupCh
             border: logoFocused ? '2px solid #fff' : '2px solid transparent',
             outline: 'none',
             cursor: 'pointer',
-            padding: 0,
             transition: 'border 0.15s, transform 0.15s',
             transform: logoFocused ? 'scale(1.05)' : 'scale(1)',
           }}
@@ -306,7 +305,7 @@ function ProfileLogoItem({ firstLetter, fullName, phoneNo, expireDate, onPopupCh
               <polygon points="13,10 13,22 23,16" fill="#E8232A"/>
             </svg>
           )}
-        </button>
+        </div>
 
         {showPopup && (
           <div ref={containerRef} style={{
@@ -412,7 +411,8 @@ export function Sidebar() {
     getMyProfile().then(profile => {
       if (profile && profile.response) {
         const name = profile.response.userName || profile.response.userMobile || 'User'
-        setFirstLetter(name.charAt(0).toUpperCase())
+        const trimmedName = name.trim()
+        setFirstLetter(trimmedName ? trimmedName.charAt(0).toUpperCase() : 'U')
         setFullName(name)
         setPhoneNo(profile.response.userMobile || '')
         setExpireDate(profile.response.expireDate || '')
@@ -469,7 +469,7 @@ export function Sidebar() {
             backdropFilter: 'blur(12px)',
             borderRadius: 999,
             padding: '4px 6px',
-            overflow: 'hidden',
+            flexShrink: 0,
             marginRight: 16,
           }}
         >
@@ -498,6 +498,7 @@ export function Sidebar() {
           backdropFilter: 'blur(12px)',
           borderRadius: 999,
           padding: '4px 6px',
+          flexShrink: 0,
         }}>
           <ProfileNavItem
             onSelect={() => handleSelect('settings')}

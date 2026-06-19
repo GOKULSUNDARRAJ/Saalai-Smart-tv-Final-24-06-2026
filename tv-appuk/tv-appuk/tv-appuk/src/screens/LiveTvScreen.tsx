@@ -60,12 +60,16 @@ function ChannelCard({
   const innerContent = (
     <>
       {!imgError ? (
-        <img
-          src={item.thumbnailUrl}
-          alt={item.title}
-          onError={() => setImgError(true)}
-          style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
-        />
+        <div style={{ width: '100%', height: '100%', background: 'transparent' }}>
+          <img src={item.thumbnailUrl} style={{ display: 'none' }} onError={() => setImgError(true)} alt="" />
+          <div style={{
+            width: '100%', height: '100%',
+            backgroundImage: `url(${item.thumbnailUrl})`,
+            backgroundSize: 'contain',
+            backgroundPosition: 'center',
+            backgroundRepeat: 'no-repeat'
+          }} />
+        </div>
       ) : (
         <div style={{
           width: '100%', height: '100%',

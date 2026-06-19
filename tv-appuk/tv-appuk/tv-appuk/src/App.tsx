@@ -78,9 +78,20 @@ export function App() {
   useEffect(() => {
     getTVVersion().then(res => {
       if (res && res.result === 'true' && res.response) {
-        const appVer = parseFloat(packageJson.version)
-        const apiVer = parseFloat(res.response.version)
-        if (apiVer > appVer) {
+        const appVer = packageJson.version
+        const apiVer = res.response.version
+        
+        const v1 = apiVer.split('.').map(Number)
+        const v2 = appVer.split('.').map(Number)
+        let isNewer = false
+        for (let i = 0; i < Math.max(v1.length, v2.length); i++) {
+          const num1 = v1[i] || 0
+          const num2 = v2[i] || 0
+          if (num1 > num2) { isNewer = true; break }
+          if (num1 < num2) { break }
+        }
+
+        if (isNewer) {
           setUpdateInfo(res)
         }
       }

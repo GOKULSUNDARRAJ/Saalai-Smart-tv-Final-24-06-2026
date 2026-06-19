@@ -36,12 +36,11 @@ function ViewMoreCard({ focusKey, width, height, onSelect, onUp, onDown }: {
     },
   })
   return (
-    <button
+    <div
       ref={ref}
       onClick={onSelect}
       style={{
-        width, height, flexShrink: 0,
-        display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+        width, height, flexShrink: 0, position: 'relative',
         borderRadius: 8,
         border: `2px solid ${focused ? '#e50914' : 'rgba(255,255,255,0.18)'}`,
         background: focused ? 'rgba(229,9,20,0.15)' : 'rgba(255,255,255,0.05)',
@@ -49,14 +48,18 @@ function ViewMoreCard({ focusKey, width, height, onSelect, onUp, onDown }: {
         cursor: 'pointer', outline: 'none',
         transform: focused ? 'scale(1.05)' : 'scale(1)',
         transition: 'all 0.12s',
-        gap: 10,
       }}
     >
-      <svg width="30" height="30" viewBox="0 0 24 24" fill="none">
-        <path d="M9 18l6-6-6-6" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
-      </svg>
-      <span style={{ fontSize: 12, fontWeight: 700, letterSpacing: 0.8, textTransform: 'uppercase' }}>View More</span>
-    </button>
+      <div style={{
+        position: 'absolute', top: 0, left: 0, right: 0, bottom: 0,
+        display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center'
+      }}>
+        <svg width="30" height="30" viewBox="0 0 24 24" fill="none" style={{ marginBottom: 10 }}>
+          <path d="M9 18l6-6-6-6" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
+        </svg>
+        <span style={{ fontSize: 12, fontWeight: 700, letterSpacing: 0.8, textTransform: 'uppercase' }}>View More</span>
+      </div>
+    </div>
   )
 }
 

@@ -2,8 +2,9 @@ import { useState, useEffect, useRef, useCallback } from 'react'
 import { useFocusable, FocusContext } from '@noriginmedia/norigin-spatial-navigation'
 import { useAppStore } from '../store/appStore'
 import packageJson from '../../package.json'
+import { UpdateModal } from '../components/ui/UpdateModal'
 import type { Screen } from '../types/content'
-import { getMyProfile, type ProfileResponse } from '../api/authApi'
+import { getMyProfile, getTVVersion, type ProfileResponse, type VersionResponse } from '../api/authApi'
 
 let _settingsSetFocusFn: ((key: string) => void) | null = null
 let _settingsRowFocused = false
@@ -146,10 +147,11 @@ interface ConfirmDialogProps {
   confirmLabel: string
   onConfirm: () => void
   onCancel: () => void
+  showCancel?: boolean
 }
 
-function ConfirmDialog({ title, message, confirmLabel, onConfirm, onCancel }: ConfirmDialogProps) {
-  const [active, setActive] = useState<'cancel' | 'confirm'>('cancel')
+function ConfirmDialog({ title, message, confirmLabel, onConfirm, onCancel, showCancel = true }: ConfirmDialogProps) {
+  const [active, setActive] = useState<'cancel' | 'confirm'>(showCancel ? 'cancel' : 'confirm')
   const activeRef = useRef(active)
   activeRef.current = active
   const onCancelRef = useRef(onCancel)
@@ -169,7 +171,7 @@ function ConfirmDialog({ title, message, confirmLabel, onConfirm, onCancel }: Co
       if (k === 37) {
         e.preventDefault()
         e.stopImmediatePropagation()
-        setActive('cancel')
+        if (showCancel) setActive('cancel')
         return
       }
       if (k === 39) {
@@ -192,7 +194,7 @@ function ConfirmDialog({ title, message, confirmLabel, onConfirm, onCancel }: Co
     }
     window.addEventListener('keydown', handler, true)
     return () => window.removeEventListener('keydown', handler, true)
-  }, [])
+  }, [showCancel])
 
   const btnBase: React.CSSProperties = {
     padding: '11px 28px',
@@ -209,7 +211,7 @@ function ConfirmDialog({ title, message, confirmLabel, onConfirm, onCancel }: Co
       onClick={onCancel}
       style={{
         position: 'fixed',
-        inset: 0,
+        top: 0, left: 0, right: 0, bottom: 0,
         zIndex: 1000,
         background: 'rgba(0,0,0,0.82)',
         display: 'flex',
@@ -230,22 +232,24 @@ function ConfirmDialog({ title, message, confirmLabel, onConfirm, onCancel }: Co
           textAlign: 'center',
         }}
       >
-        <div style={{ fontSize: '36px', marginBottom: '14px' }}>⚠</div>
+        <div style={{ fontSize: '36px', marginBottom: '14px' }}>{showCancel ? '⚠' : 'ℹ'}</div>
         <h2 style={{ color: '#fff', fontSize: '18px', fontWeight: 700, margin: '0 0 10px' }}>{title}</h2>
         <p style={{ color: 'rgba(255,255,255,0.55)', fontSize: '14px', margin: '0 0 28px', lineHeight: 1.6 }}>{message}</p>
         <div style={{ display: 'flex', gap: '12px', justifyContent: 'center' }}>
-          <button
-            onClick={onCancel}
-            style={{
-              ...btnBase,
-              border: active === 'cancel' ? '2px solid rgba(255,255,255,0.6)' : '2px solid rgba(255,255,255,0.2)',
-              background: active === 'cancel' ? 'rgba(255,255,255,0.18)' : 'rgba(255,255,255,0.06)',
-              color: '#fff',
-              transform: active === 'cancel' ? 'scale(1.06)' : 'scale(1)',
-            }}
-          >
-            Cancel
-          </button>
+          {showCancel && (
+            <button
+              onClick={onCancel}
+              style={{
+                ...btnBase,
+                border: active === 'cancel' ? '2px solid rgba(255,255,255,0.6)' : '2px solid rgba(255,255,255,0.2)',
+                background: active === 'cancel' ? 'rgba(255,255,255,0.18)' : 'rgba(255,255,255,0.06)',
+                color: '#fff',
+                transform: active === 'cancel' ? 'scale(1.06)' : 'scale(1)',
+              }}
+            >
+              Cancel
+            </button>
+          )}
           <button
             onClick={onConfirm}
             style={{
@@ -269,8 +273,9 @@ function ConfirmDialog({ title, message, confirmLabel, onConfirm, onCancel }: Co
 export function SettingsScreen() {
   const { navigate, logout } = useAppStore()
   const [profile, setProfile] = useState<ProfileResponse['response'] | null>(null)
-  const [dialog, setDialog] = useState<{ type: 'logout' | 'reset' } | null>(null)
-  const dialogTypeRef = useRef<'logout' | 'reset' | null>(null)
+  const [dialog, setDialog] = useState<{ type: 'logout' | 'reset' | 'update' | 'checking' | 'uptodate' | 'error' } | null>(null)
+  const dialogTypeRef = useRef<'logout' | 'reset' | 'update' | 'checking' | 'uptodate' | 'error' | null>(null)
+  const [updateInfo, setUpdateInfo] = useState<VersionResponse | null>(null)
   const { ref, focusKey, setFocus } = useFocusable({ focusKey: 'settings-screen', trackChildren: true })
 
   useEffect(() => {
@@ -296,11 +301,11 @@ export function SettingsScreen() {
       title: 'Account',
       items: [
         { id: 'account-profile', label: 'Profile Name',      value: profile?.userName || 'Loading...', icon: '👤' },
-        { id: 'account-email',   label: 'Email',             value: profile?.userEmail || '-', icon: '✉' },
+        { id: 'account-device',  label: 'Device Box ID',     value: profile?.boxId ? String(profile.boxId) : '-', icon: '📺' },
         { id: 'account-mobile',  label: 'Mobile',            value: profile?.userMobile || '-', icon: '📱' },
         { id: 'account-activate',label: 'Activation Date',   value: profile?.activationDate || '-', icon: '📅' },
+        { id: 'account-email',   label: 'Email',             value: profile?.userEmail || '-', icon: '✉' },
         { id: 'account-expire',  label: 'Subscription Ends', value: profile?.expireDate || '-', icon: '★' },
-        { id: 'account-device',  label: 'Device Box ID',     value: profile?.boxId ? String(profile.boxId) : '-', icon: '📺' },
         { id: 'account-logout',  label: 'Sign Out',          value: '',           icon: '⎋', action: true },
       ],
     },
@@ -309,6 +314,7 @@ export function SettingsScreen() {
       items: [
         { id: 'about-version',  label: 'App Version',        value: packageJson.version,      icon: 'ℹ' },
         { id: 'about-device',   label: 'Platform',           value: 'Android TV', icon: '⊞' },
+        { id: 'about-update',   label: 'Update Version',     value: '', icon: '🔄', action: true },
       ],
     },
   ]
@@ -325,6 +331,42 @@ export function SettingsScreen() {
       setDialog({ type: 'reset' })
       return
     }
+    if (id === 'about-update') {
+      dialogTypeRef.current = 'checking'
+      setDialog({ type: 'checking' })
+      getTVVersion().then(res => {
+        if (res && res.result === 'true' && res.response) {
+          const appVer = packageJson.version
+          const apiVer = res.response.version
+          
+          const v1 = apiVer.split('.').map(Number)
+          const v2 = appVer.split('.').map(Number)
+          let isNewer = false
+          for (let i = 0; i < Math.max(v1.length, v2.length); i++) {
+            const num1 = v1[i] || 0
+            const num2 = v2[i] || 0
+            if (num1 > num2) { isNewer = true; break }
+            if (num1 < num2) { break }
+          }
+
+          if (isNewer) {
+            setUpdateInfo(res)
+            dialogTypeRef.current = 'update'
+            setDialog({ type: 'update' })
+          } else {
+            dialogTypeRef.current = 'uptodate'
+            setDialog({ type: 'uptodate' })
+          }
+        } else {
+          dialogTypeRef.current = 'error'
+          setDialog({ type: 'error' })
+        }
+      }).catch(() => {
+        dialogTypeRef.current = 'error'
+        setDialog({ type: 'error' })
+      })
+      return
+    }
   }, [navigate, logout])
 
   const handleConfirm = useCallback(() => {
@@ -339,6 +381,7 @@ export function SettingsScreen() {
     dialogTypeRef.current = null
     setTimeout(() => {
       if (type === 'logout') setFocus('settings-row-account-logout')
+      else if (type === 'update') setFocus('settings-row-about-update')
       else setFocus('settings-row-about-reset')
     }, 50)
   }, [setFocus])
@@ -423,16 +466,41 @@ export function SettingsScreen() {
         </div>
       </div>
 
-      {dialog && (
+      {dialog && dialog.type === 'update' && updateInfo && (
+        <UpdateModal
+          title={updateInfo.response.title || 'App Update'}
+          version={updateInfo.response.version}
+          apkUrl={updateInfo.response.apk_url}
+          onClose={handleCancel}
+        />
+      )}
+      {dialog && dialog.type !== 'update' && (
         <ConfirmDialog
-          title={dialog.type === 'logout' ? 'Sign Out' : 'Reset Activation'}
+          title={
+            dialog.type === 'logout' ? 'Sign Out' :
+            dialog.type === 'reset' ? 'Reset Activation' :
+            dialog.type === 'checking' ? 'Checking Update' :
+            dialog.type === 'uptodate' ? 'Up to Date' : 'Update Check Failed'
+          }
           message={
             dialog.type === 'logout'
               ? 'Are you sure you want to sign out? You will need to re-enter your credentials.'
-              : 'Are you sure you want to reset activation? You will need to enter the activation code again.'
+              : dialog.type === 'reset'
+              ? 'Are you sure you want to reset activation? You will need to enter the activation code again.'
+              : dialog.type === 'checking'
+              ? 'Please wait while we check for the latest updates...'
+              : dialog.type === 'uptodate'
+              ? 'You are already using the latest version of the app.'
+              : 'Could not check for updates. Please check your connection and try again.'
           }
-          confirmLabel={dialog.type === 'logout' ? 'Sign Out' : 'Reset'}
-          onConfirm={handleConfirm}
+          confirmLabel={
+            dialog.type === 'logout' ? 'Sign Out' :
+            dialog.type === 'reset' ? 'Reset' : 'OK'
+          }
+          showCancel={dialog.type === 'logout' || dialog.type === 'reset'}
+          onConfirm={
+            dialog.type === 'logout' || dialog.type === 'reset' ? handleConfirm : handleCancel
+          }
           onCancel={handleCancel}
         />
       )}

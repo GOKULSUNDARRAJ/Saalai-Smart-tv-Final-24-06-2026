@@ -86,38 +86,41 @@ function EpisodeCard({
         transition: 'transform 0.15s',
         zIndex: focused ? 10 : 1,
         cursor: 'pointer',
+        ...style,
       }}
     >
       <div style={{
-        width: '100%', aspectRatio: '16/9', borderRadius: 10, overflow: 'hidden', background: '#1a1a1a', position: 'relative',
+        width: '100%', paddingBottom: '56.25%', borderRadius: 10, overflow: 'hidden', background: '#1a1a1a', position: 'relative',
         outline: (window as any).isLegacyTv ? 'none' : (focused ? '3px solid #e50914' : '3px solid transparent'),
         boxShadow: (window as any).isLegacyTv && focused ? '0 0 0 3px #0a0a0a, 0 0 0 6px #e50914' : 'none',
         outlineOffset: 3,
         transition: 'outline-color 0.12s'
       }}>
-        {!imgError ? (
-          <img
-            src={item.showLogo}
-            alt={item.showName}
-            onError={() => setImgError(true)}
-            style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
-          />
-        ) : (
-          <div style={{
-            width: '100%', height: '100%',
-            background: 'linear-gradient(135deg, #1a1a2e, #16213e)',
-            display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 8,
-          }}>
-            <span style={{ color: '#fff', fontSize: 10, fontWeight: 600, textAlign: 'center', lineHeight: 1.4 }}>
-              {item.showName}
-            </span>
-          </div>
-        )}
-        {progress > 0 && (
-          <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: 4, background: 'rgba(255,255,255,0.2)' }}>
-            <div style={{ width: `${progress * 100}%`, height: '100%', background: '#3b82f6' }} />
-          </div>
-        )}
+        <div style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }}>
+          {!imgError ? (
+            <img
+              src={item.showLogo}
+              alt={item.showName}
+              onError={() => setImgError(true)}
+              style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
+            />
+          ) : (
+            <div style={{
+              width: '100%', height: '100%',
+              background: 'linear-gradient(135deg, #1a1a2e, #16213e)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 8,
+            }}>
+              <span style={{ color: '#fff', fontSize: 10, fontWeight: 600, textAlign: 'center', lineHeight: 1.4 }}>
+                {item.showName}
+              </span>
+            </div>
+          )}
+          {progress > 0 && (
+            <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: 4, background: 'rgba(255,255,255,0.2)' }}>
+              <div style={{ width: `${progress * 100}%`, height: '100%', background: '#3b82f6' }} />
+            </div>
+          )}
+        </div>
       </div>
       <div style={{ marginTop: 8, paddingLeft: 4, paddingRight: 4 }}>
         <div style={{ fontSize: 14, fontWeight: 500, color: '#fff', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
@@ -267,17 +270,25 @@ export function CatchupDetailScreen() {
       <div ref={ref} style={{ height: '100%', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
 
         <div style={{
-          display: 'flex', alignItems: 'center', gap: 16,
-          paddingLeft: '4vw', paddingRight: '4vw',
+          display: 'flex', alignItems: 'center',
+          paddingLeft: '2vw', paddingRight: '4vw',
           paddingTop: 'clamp(10px, 1.8vh, 20px)', paddingBottom: 'clamp(8px, 1.2vh, 14px)',
           background: 'transparent',
           flexShrink: 0,
         }}>
-          <img
-            src={detail.channelLogo}
-            alt={detail.channelName}
-            style={{ width: 56, height: 56, objectFit: 'cover', borderRadius: '50%', background: '#1a1a2e', flexShrink: 0 }}
-          />
+          <div style={{ 
+            width: 'calc(152px - 2vw)', height: 80, borderRadius: 4, background: '#fff', 
+            flexShrink: 0, overflow: 'hidden', padding: 4,
+            marginRight: 24
+          }}>
+            <div style={{
+              width: '100%', height: '100%',
+              backgroundImage: `url(${detail.channelLogo})`,
+              backgroundSize: 'contain',
+              backgroundPosition: 'center',
+              backgroundRepeat: 'no-repeat'
+            }} />
+          </div>
           <div style={{ flex: 1, minWidth: 0 }}>
             <h1 style={{ color: '#fff', fontWeight: 700, fontSize: 'clamp(14px, 2vw, 22px)', margin: 0, lineHeight: 1.2 }}>{detail.channelName}</h1>
             <p style={{ color: 'rgba(255,255,255,0.5)', fontSize: 'clamp(9px, 1.1vw, 12px)', margin: '4px 0 0', overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}>
@@ -342,11 +353,12 @@ export function CatchupDetailScreen() {
             {Array.from({ length: epRows }).map((_, rowIdx) => {
               const rowItems = episodes.slice(rowIdx * EP_COLS, (rowIdx + 1) * EP_COLS)
               return (
-                <div key={rowIdx} style={{ display: 'flex', gap: 12, marginBottom: 12, overflow: 'visible' }}>
+                <div key={rowIdx} style={{ display: 'flex', gap: (window as any).isLegacyTv ? 0 : 12, marginBottom: 12, overflow: 'visible' }}>
                   {rowItems.map((ep, colIdx) => (
                     <EpisodeCard
                       key={`${ep.showName}-${colIdx}`}
                       item={ep}
+                      style={{ marginRight: (window as any).isLegacyTv && colIdx < EP_COLS - 1 ? 12 : 0 }}
                       focusKey={`catchupdetail-ep-${rowIdx}-${colIdx}`}
                       onArrow={epArrow(rowIdx, colIdx)}
                       onSelect={() => handleEpisodeSelect(ep)}
@@ -354,7 +366,7 @@ export function CatchupDetailScreen() {
                     />
                   ))}
                   {rowItems.length < EP_COLS && Array.from({ length: EP_COLS - rowItems.length }).map((_, i) => (
-                    <div key={`sp-${i}`} style={{ flex: 1, aspectRatio: '16/9' }} />
+                    <div key={`sp-${i}`} style={{ flex: 1, aspectRatio: '16/9', marginRight: (window as any).isLegacyTv && (rowItems.length + i) < EP_COLS - 1 ? 12 : 0 }} />
                   ))}
                 </div>
               )

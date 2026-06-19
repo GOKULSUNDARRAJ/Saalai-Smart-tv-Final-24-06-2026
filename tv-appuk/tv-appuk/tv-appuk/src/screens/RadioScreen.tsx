@@ -54,33 +54,19 @@ function RadioCard({
     else if (eRect.bottom > pRect.bottom) parent.scrollTop += eRect.bottom - pRect.bottom + 16
   }, [focused])
 
-  return (
-    <div
-      ref={mergedRef}
-      onClick={onSelect}
-      style={{
-        flex: 1,
-        aspectRatio: '16/9',
-        borderRadius: 12,
-        overflow: 'hidden',
-        position: 'relative',
-        outline: (window as any).isLegacyTv ? 'none' : (focused ? '3px solid #e50914' : '3px solid transparent'),
-        boxShadow: (window as any).isLegacyTv && focused ? '0 0 0 3px #0a0a0a, 0 0 0 6px #e50914' : 'none',
-        outlineOffset: 3,
-        transform: focused ? 'scale(1.06)' : 'scale(1)',
-        transition: 'transform 0.15s, outline-color 0.12s',
-        zIndex: focused ? 10 : 1,
-        background: '#1a1a1a',
-        cursor: 'pointer',
-      }}
-    >
+  const isLegacy = (window as any).isLegacyTv;
+
+  const innerContent = (
+    <div style={{ width: '100%', height: '100%', borderRadius: 12, overflow: 'hidden', background: '#1a1a1a', position: 'relative' }}>
       {!imgError ? (
-        <img
-          src={item.channelLogo}
-          alt={item.channelName}
-          onError={() => setImgError(true)}
-          style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
-        />
+        <div style={{ width: '100%', height: '100%', background: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <img
+            src={item.channelLogo}
+            alt={item.channelName}
+            onError={() => setImgError(true)}
+            style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }}
+          />
+        </div>
       ) : (
         <div style={{
           width: '100%', height: '100%',
@@ -92,9 +78,61 @@ function RadioCard({
           </span>
         </div>
       )}
-
     </div>
-  )
+  );
+
+  if (isLegacy) {
+    return (
+      <div style={{ flex: 1, position: 'relative', ...style }}>
+        <div style={{ paddingBottom: '56.25%' }} />
+        
+        {/* Outer Focus Ring wrapper for legacy TV to give gap */}
+        <div style={{
+          position: 'absolute', top: -5, left: -5, right: -5, bottom: -5,
+          borderRadius: 16,
+          border: focused ? '3px solid #e50914' : '3px solid transparent',
+          pointerEvents: 'none', zIndex: 10,
+          transition: 'border-color 0.12s',
+        }} />
+
+        {/* Card Content */}
+        <div
+          ref={mergedRef}
+          onClick={onSelect}
+          style={{
+            position: 'absolute', top: 0, left: 0, width: '100%', height: '100%',
+            borderRadius: 12, overflow: 'hidden',
+            background: '#1a1a1a', cursor: 'pointer',
+          }}
+        >
+          {innerContent}
+        </div>
+      </div>
+    );
+  }
+
+  // Modern TV rendering
+  return (
+    <div
+      ref={mergedRef}
+      onClick={onSelect}
+      style={{
+        flex: 1,
+        aspectRatio: '16/9',
+        borderRadius: 12,
+        outline: focused ? '3px solid #e50914' : '3px solid transparent',
+        outlineOffset: 3,
+        transform: focused ? 'scale(1.06)' : 'scale(1)',
+        transition: 'transform 0.15s, outline-color 0.12s',
+        zIndex: focused ? 10 : 1,
+        cursor: 'pointer',
+        position: 'relative',
+        ...style
+      }}
+    >
+      {innerContent}
+    </div>
+  );
 }
 
 export function RadioScreen() {
@@ -127,7 +165,7 @@ export function RadioScreen() {
       setLoadingMore(false)
     }
     pageRef.current = pageRef.current + 1
-    if (result.items.length < PAGE_COUNT) setHasMore(false)
+    if (result.items.length === 0) setHasMore(false)
   }, [])
 
   useEffect(() => {
@@ -219,12 +257,12 @@ export function RadioScreen() {
             {Array.from({ length: rows }).map((_, rowIdx) => {
               const rowItems = stations.slice(rowIdx * COLS, (rowIdx + 1) * COLS)
               return (
-                <div key={rowIdx} style={{ display: 'flex', gap: 16, marginBottom: 8, overflow: 'visible' }}>
+                <div key={rowIdx} style={{ display: 'flex', gap: (window as any).isLegacyTv ? 0 : 16, marginBottom: 8, overflow: 'visible' }}>
                   {rowItems.map((item, colIdx) => (
                     <RadioCard
                       key={item.channelId}
                       item={item}
-                      style={{ marginRight: colIdx < COLS - 1 ? 16 : 0 }}
+                      style={{ marginRight: (window as any).isLegacyTv && colIdx < COLS - 1 ? 16 : 0 }}
                       focusKey={`radio-card-${rowIdx}-${colIdx}`}
                       onArrow={cardArrow(rowIdx, colIdx)}
                       onSelect={() => handleSelect(item)}
@@ -232,7 +270,7 @@ export function RadioScreen() {
                     />
                   ))}
                   {rowItems.length < COLS && Array.from({ length: COLS - rowItems.length }).map((_, i) => (
-                    <div key={`spacer-${i}`} style={{ flex: 1 }} />
+                    <div key={`spacer-${i}`} style={{ flex: 1, marginRight: (window as any).isLegacyTv && (rowItems.length + i) < COLS - 1 ? 16 : 0 }} />
                   ))}
                 </div>
               )

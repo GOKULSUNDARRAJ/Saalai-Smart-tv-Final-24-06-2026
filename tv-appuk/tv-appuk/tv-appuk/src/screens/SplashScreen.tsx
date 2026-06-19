@@ -28,7 +28,7 @@ export function SplashScreen({ onDone }: Props) {
 
   const containerStyle: React.CSSProperties = {
     position: 'fixed',
-    inset: 0,
+    top: 0, left: 0, right: 0, bottom: 0,
     background: '#0a0a0a',
     display: 'flex',
     flexDirection: 'column',

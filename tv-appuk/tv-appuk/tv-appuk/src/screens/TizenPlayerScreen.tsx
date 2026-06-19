@@ -744,7 +744,7 @@ export function TizenPlayerScreen() {
 
       {seekDisplay && !localOpts.isLive && (
         <div style={{
-          position: 'absolute', inset: 0, zIndex: 5,
+          position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, zIndex: 5,
           display: 'flex', alignItems: 'center', justifyContent: 'center',
           pointerEvents: 'none',
         }}>

@@ -65,35 +65,10 @@ function EpisodeCard({
   const showActiveBorder = focused || isSelected
   const borderColor = focused ? '#e50914' : isSelected ? 'rgba(229,9,20,0.5)' : 'transparent'
 
-  return (
-    <div
-      ref={setRef}
-      onClick={onSelect}
-      style={{
-        flex: 1,
-        display: 'flex',
-        flexDirection: 'column',
-        transform: focused ? 'scale(1.06)' : 'scale(1)',
-        transition: 'transform 0.15s',
-        zIndex: focused ? 10 : 1,
-        cursor: 'pointer',
-        ...style,
-      }}
-    >
-      <div
-        style={{
-          width: '100%',
-          aspectRatio: '16/8',
-          borderRadius: 10,
-          overflow: 'hidden',
-          background: '#1a1a1a',
-          position: 'relative',
-          outline: (window as any).isLegacyTv ? 'none' : (showActiveBorder ? `3px solid ${borderColor}` : '3px solid transparent'),
-        boxShadow: (window as any).isLegacyTv && showActiveBorder ? `0 0 0 3px #0a0a0a, 0 0 0 6px ${borderColor}` : 'none',
-          outlineOffset: 2,
-          transition: 'outline-color 0.15s',
-        }}
-      >
+  const isLegacy = (window as any).isLegacyTv;
+
+  const innerContent = (
+    <div style={{ position: 'relative', width: '100%', height: '100%', borderRadius: 10, overflow: 'hidden', background: '#1a1a1a' }}>
         {!imgError ? (
           <img
             src={item.episodeLogo}
@@ -118,23 +93,90 @@ function EpisodeCard({
               <div style={{ height: '100%', width: `${Math.min(progressPct, 100)}%`, background: '#3b82f6', borderRadius: '0 0 0 10px' }} />
             </div>
           )}
-        </div>
-        <div style={{ marginTop: 8, paddingLeft: 4, paddingRight: 4 }}>
-          <div style={{ fontSize: 14, fontWeight: 500, color: '#fff', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-            {item.episodeName}
-          </div>
-          {item.episodeDate && (
-            <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.6)', marginTop: 2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-              {item.episodeDate}
-            </div>
-          )}
-        </div>
+    </div>
+  );
+
+  const textContent = (
+    <div style={{ marginTop: 8, paddingLeft: 4, paddingRight: 4 }}>
+      <div style={{ fontSize: 14, fontWeight: 500, color: '#fff', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+        {item.episodeName}
       </div>
+      {item.episodeDate && (
+        <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.6)', marginTop: 2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+          {item.episodeDate}
+        </div>
+      )}
+    </div>
+  );
+
+  if (isLegacy) {
+    return (
+      <div
+        ref={setRef}
+        onClick={onSelect}
+        style={{
+          flex: 1,
+          display: 'flex',
+          flexDirection: 'column',
+          cursor: 'pointer',
+          ...style,
+        }}
+      >
+        <div style={{ position: 'relative', width: '100%' }}>
+          <div style={{ paddingBottom: '50%' }} />
+          <div style={{
+            position: 'absolute', top: -4, left: -4, right: -4, bottom: -4,
+            borderRadius: 14,
+            border: showActiveBorder ? `3px solid ${borderColor}` : '3px solid transparent',
+            pointerEvents: 'none', zIndex: 10,
+            transition: 'border-color 0.15s',
+          }} />
+          <div style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }}>
+            {innerContent}
+          </div>
+        </div>
+        {textContent}
+      </div>
+    );
+  }
+
+  return (
+    <div
+      ref={setRef}
+      onClick={onSelect}
+      style={{
+        flex: 1,
+        display: 'flex',
+        flexDirection: 'column',
+        transform: focused ? 'scale(1.06)' : 'scale(1)',
+        transition: 'transform 0.15s',
+        zIndex: focused ? 10 : 1,
+        cursor: 'pointer',
+        ...style,
+      }}
+    >
+      <div
+        style={{
+          width: '100%',
+          aspectRatio: '16/8',
+          borderRadius: 10,
+          overflow: 'hidden',
+          background: '#1a1a1a',
+          position: 'relative',
+          outline: showActiveBorder ? `3px solid ${borderColor}` : '3px solid transparent',
+          outlineOffset: 2,
+          transition: 'outline-color 0.15s',
+        }}
+      >
+        {innerContent}
+      </div>
+      {textContent}
+    </div>
   )
 }
 
 function ActionButton({
-  focusKey, primary, children, onPress, onArrow, scrollToTop, onUp,
+  focusKey, primary, children, onPress, onArrow, scrollToTop, onUp, style,
 }: {
   focusKey: string
   primary?: boolean
@@ -143,6 +185,7 @@ function ActionButton({
   onArrow: (dir: string) => boolean
   scrollToTop: () => void
   onUp: () => void
+  style?: React.CSSProperties
 }) {
   const { ref, focused } = useFocusable({
     focusKey,
@@ -159,7 +202,7 @@ function ActionButton({
       ref={ref}
       onClick={onPress}
       style={{
-        display: 'flex', alignItems: 'center', gap: 8,
+        display: 'flex', alignItems: 'center', gap: (window as any).isLegacyTv ? 0 : 8,
         padding: '10px 28px', borderRadius: 8, cursor: 'pointer', outline: 'none',
         border: primary ? 'none' : '2px solid rgba(255,255,255,0.3)',
         background: primary
@@ -173,6 +216,7 @@ function ActionButton({
           ? (primary ? '0 0 0 3px rgba(229,9,20,0.4)' : '0 0 0 3px rgba(255,255,255,0.2)')
           : 'none',
         transition: 'transform 0.12s, box-shadow 0.12s, background 0.12s',
+        ...style
       }}
     >
       {children}
@@ -559,21 +603,21 @@ export function TvShowDetailScreen() {
             <img
               src={episodeDetail.episodeLogo}
               alt=""
-              style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', opacity: 0.22 }}
+              style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, width: '100%', height: '100%', objectFit: 'cover', opacity: 0.22 }}
             />
-            <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to right, #0a0a0a 0%, rgba(10,10,10,0.88) 55%, rgba(10,10,10,0.5) 100%)' }} />
-            <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to bottom, transparent 50%, #0a0a0a 100%)' }} />
+            <div style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, background: 'linear-gradient(to right, #0a0a0a 0%, rgba(10,10,10,0.88) 55%, rgba(10,10,10,0.5) 100%)' }} />
+            <div style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, background: 'linear-gradient(to bottom, transparent 50%, #0a0a0a 100%)' }} />
 
             {loadingEpisodeDetail && (
-              <div style={{ position: 'absolute', inset: 0, zIndex: 10, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(10,10,10,0.6)' }}>
+              <div style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, zIndex: 10, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(10,10,10,0.6)' }}>
                 <div style={{ color: 'rgba(255,255,255,0.6)', fontSize: 14 }}>Loading…</div>
               </div>
             )}
-            <div style={{ position: 'relative', zIndex: 2, display: 'flex', alignItems: 'flex-start', minHeight: '30vh', padding: '20px 5vw 20px', gap: 24 }}>
+            <div style={{ position: 'relative', zIndex: 2, display: 'flex', alignItems: 'flex-start', minHeight: '30vh', padding: '20px 5vw 20px', gap: (window as any).isLegacyTv ? 0 : 24 }}>
               <img
                 src={episodeDetail.episodeLogo}
                 alt={episodeDetail.episodeName}
-                style={{ width: 350, height: 200, flexShrink: 0, borderRadius: 12, boxShadow: '0 8px 32px rgba(0,0,0,0.6)', objectFit: 'cover', opacity: loadingEpisodeDetail ? 0.5 : 1, transition: 'opacity 0.2s' }}
+                style={{ width: 350, height: 200, flexShrink: 0, borderRadius: 12, boxShadow: '0 8px 32px rgba(0,0,0,0.6)', objectFit: 'cover', marginRight: (window as any).isLegacyTv ? 24 : 0, opacity: loadingEpisodeDetail ? 0.5 : 1, transition: 'opacity 0.2s' }}
               />
 
               <div style={{ flex: 1, paddingTop: 4 }}>
@@ -613,10 +657,9 @@ export function TvShowDetailScreen() {
                   </div>
                 )}
 
-                <div style={{ display: 'flex', gap: 12 }}>
+                <div style={{ display: 'flex', gap: (window as any).isLegacyTv ? 0 : 12 }}>
                   {resumeData && (
-                    <ActionButton
-                      focusKey="tvshowdetail-resume"
+                    <ActionButton style={{ marginRight: (window as any).isLegacyTv ? 16 : 0 }} focusKey="tvshowdetail-resume"
                       primary
                       onPress={handleResume}
                       scrollToTop={scrollToTop}
@@ -633,8 +676,7 @@ export function TvShowDetailScreen() {
                       ▶ Resume · {formatResumeTime(resumeData.posMs)}
                     </ActionButton>
                   )}
-                  <ActionButton
-                    focusKey="tvshowdetail-play"
+                  <ActionButton style={{ marginRight: (window as any).isLegacyTv ? 16 : 0 }} focusKey="tvshowdetail-play"
                     primary={!resumeData}
                     onPress={handlePlay}
                     scrollToTop={scrollToTop}
@@ -655,8 +697,7 @@ export function TvShowDetailScreen() {
                   >
                     ▶ Play
                   </ActionButton>
-                  <ActionButton
-                    focusKey="tvshowdetail-back"
+                  <ActionButton style={{ marginRight: (window as any).isLegacyTv ? 16 : 0 }} focusKey="tvshowdetail-back"
                     onPress={handleBack}
                     scrollToTop={scrollToTop}
                     onUp={handleUpToNav}
@@ -669,7 +710,7 @@ export function TvShowDetailScreen() {
                       return false
                     }}
                   >
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M15 5L8 12L15 19" stroke="currentColor" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round"/></svg> Back
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" style={{ marginRight: (window as any).isLegacyTv ? 8 : 0 }}><path d="M15 5L8 12L15 19" stroke="currentColor" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round"/></svg> Back
                   </ActionButton>
                 </div>
               </div>
@@ -682,7 +723,7 @@ export function TvShowDetailScreen() {
               {Array.from({ length: rows }).map((_, rowIdx) => {
                 const rowItems = episodes.slice(rowIdx * EPISODE_COLS, (rowIdx + 1) * EPISODE_COLS)
                 return (
-                  <div key={`${rowIdx}-${progressVersion}`} style={{ display: 'flex', gap: 12, marginBottom: 12 }}>
+                  <div key={`${rowIdx}-${progressVersion}`} style={{ display: 'flex', gap: (window as any).isLegacyTv ? 0 : 12, marginBottom: 12 }}>
                     {rowItems.map((ep, colIdx) => {
                       const posMs = parseInt(tvStorage.getItem(`resume_pos_${ep.episodeId}`) ?? '0') || 0
                       const durMs = parseInt(tvStorage.getItem(`episode_dur_${ep.episodeId}`) ?? '0') || 3600000
@@ -691,6 +732,7 @@ export function TvShowDetailScreen() {
                         <EpisodeCard
                           key={ep.episodeId}
                           item={ep}
+                          style={{ marginRight: (window as any).isLegacyTv && colIdx < EPISODE_COLS - 1 ? 12 : 0 }}
                           focusKey={`tvshowdetail-ep-${rowIdx}-${colIdx}`}
                           onArrow={episodeArrow(rowIdx, colIdx)}
                           onSelect={() => handleEpisodeSelect(ep)}
@@ -702,7 +744,7 @@ export function TvShowDetailScreen() {
                     {rowItems.length < EPISODE_COLS && Array.from({ length: EPISODE_COLS - rowItems.length }).map((_, i) => {
                       const colIdx = rowItems.length + i
                       return (
-                        <div key={`spacer-${i}`} style={{ flex: 1, aspectRatio: '16/8' }} />
+                        <div key={`spacer-${i}`} style={{ flex: 1, paddingBottom: '50%', marginRight: (window as any).isLegacyTv && (rowItems.length + i) < EPISODE_COLS - 1 ? 12 : 0 }} />
                       )
                     })}
                   </div>

@@ -411,28 +411,32 @@ function ViewMoreCard({
       style={{
         flexShrink: 0,
         width: isContinue ? 240 : 160,
-        aspectRatio: isContinue ? '16/9' : '2/3',
+        position: 'relative',
+        cursor: 'pointer', outline: 'none',
+      }}
+    >
+      <div style={{ paddingBottom: isContinue ? '56.25%' : '150%' }} />
+      <div style={{
+        position: 'absolute', top: 0, left: 0, right: 0, bottom: 0,
         borderRadius: 12,
         overflow: 'hidden',
-        position: 'relative',
         border: `2px solid ${focused ? '#e50914' : 'rgba(255,255,255,0.18)'}`,
         background: focused ? 'rgba(229,9,20,0.15)' : 'rgba(255,255,255,0.05)',
         color: focused ? '#fff' : 'rgba(255,255,255,0.55)',
-        cursor: 'pointer', outline: 'none',
         transform: focused ? 'scale(1.06)' : 'scale(1)',
         transition: 'all 0.15s',
         zIndex: focused ? 10 : 1,
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center',
-        justifyContent: 'center',
-        gap: 10,
-      }}
-    >
-      <svg width="30" height="30" viewBox="0 0 24 24" fill="none">
-        <path d="M9 18l6-6-6-6" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
-      </svg>
-      <span style={{ fontSize: 12, fontWeight: 700, letterSpacing: 0.8, textTransform: 'uppercase' }}>View More</span>
+      }}>
+        <div style={{
+          position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)',
+          display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center'
+        }}>
+          <svg width="30" height="30" viewBox="0 0 24 24" fill="none" style={{ marginBottom: 10 }}>
+            <path d="M9 18l6-6-6-6" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
+          </svg>
+          <span style={{ fontSize: 12, fontWeight: 700, letterSpacing: 0.8, textTransform: 'uppercase' }}>View More</span>
+        </div>
+      </div>
     </div>
   )
 }
@@ -897,6 +901,7 @@ export function MoviesScreen() {
                                   navigateToMovieDetail(item.id)
                                 }}
                                 onFocused={() => notifyMoviesFocusLevel('card', selectedGenre)}
+                                style={{ marginRight: colIdx < activeCols - 1 ? 16 : 0 }}
                               />
                             )
                           })}

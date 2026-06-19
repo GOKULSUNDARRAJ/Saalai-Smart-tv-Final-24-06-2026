@@ -173,7 +173,7 @@ export function HomeScreen() {
   return (
     <FocusContext.Provider value={focusKey}>
       <div ref={ref} style={{ height: '100%', overflow: 'hidden', backgroundImage: homeScrolled ? 'none' : (banners[bannerIdx] ? `url(${banners[bannerIdx]})` : 'none'), backgroundColor: '#000000', backgroundSize: 'cover', backgroundPosition: 'center', position: 'relative', transition: 'background-image 0.8s ease-in-out' }}>
-        <div style={{ position: 'absolute', inset: 0, background: homeScrolled ? '#000000' : 'rgba(0,0,0,0.40)', zIndex: 0, pointerEvents: 'none', transition: 'background 0.3s ease' }} />
+        <div style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, background: homeScrolled ? '#000000' : 'rgba(0,0,0,0.40)', zIndex: 0, pointerEvents: 'none', transition: 'background 0.3s ease' }} />
 
         {/* Red gradient at top when scrolled */}
         <div style={{
@@ -211,7 +211,11 @@ export function HomeScreen() {
           className="scrollbar-hide"
         >
           {loading && rows.length === 0 && (
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '20vh', color: 'rgba(255,255,255,0.4)', fontSize: 14 }}>
+            <div style={{ 
+              position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, 
+              display: 'flex', alignItems: 'center', justifyContent: 'center', 
+              color: 'rgba(255,255,255,0.4)', fontSize: 16, zIndex: 10 
+            }}>
               Loading…
             </div>
           )}
