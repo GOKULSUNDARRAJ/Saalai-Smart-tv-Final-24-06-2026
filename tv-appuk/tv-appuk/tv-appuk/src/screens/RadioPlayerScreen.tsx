@@ -89,7 +89,7 @@ function PlayPauseButton({ playing, onToggle }: {
         transition: 'background 0.15s, border-color 0.15s',
         boxShadow: focused ? '0 0 24px rgba(229,9,20,0.7)' : '0 0 10px rgba(229,9,20,0.2)',
         marginTop: 16, flexShrink: 0,
-        outline: focused ? '2px solid rgba(255,255,255,0.4)' : 'none',
+        outline: (window as any).isLegacyTv ? 'none' : (focused ? '2px solid rgba(255,255,255,0.4)' : 'none'),
         outlineOffset: 3,
       }}
     >

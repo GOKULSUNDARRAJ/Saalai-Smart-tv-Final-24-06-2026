@@ -90,7 +90,8 @@ function EpisodeCard({
     >
       <div style={{
         width: '100%', aspectRatio: '16/9', borderRadius: 10, overflow: 'hidden', background: '#1a1a1a', position: 'relative',
-        outline: focused ? '3px solid #e50914' : '3px solid transparent',
+        outline: (window as any).isLegacyTv ? 'none' : (focused ? '3px solid #e50914' : '3px solid transparent'),
+        boxShadow: (window as any).isLegacyTv && focused ? '0 0 0 3px #0a0a0a, 0 0 0 6px #e50914' : 'none',
         outlineOffset: 3,
         transition: 'outline-color 0.12s'
       }}>

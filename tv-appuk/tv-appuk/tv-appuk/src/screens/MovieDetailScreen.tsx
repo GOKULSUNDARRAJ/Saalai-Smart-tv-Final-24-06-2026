@@ -58,7 +58,8 @@ function RelatedCard({
           style={{
             position: 'absolute', top: 0, left: 0, right: 0, bottom: 0,
             borderRadius: 10, overflow: 'hidden',
-            outline: focused ? '3px solid #e50914' : '3px solid transparent',
+            outline: (window as any).isLegacyTv ? 'none' : (focused ? '3px solid #e50914' : '3px solid transparent'),
+        boxShadow: (window as any).isLegacyTv && focused ? '0 0 0 3px #0a0a0a, 0 0 0 6px #e50914' : 'none',
             outlineOffset: 2,
             transform: focused ? 'scale(1.06)' : 'scale(1)',
             transition: 'transform 0.15s, outline-color 0.12s',

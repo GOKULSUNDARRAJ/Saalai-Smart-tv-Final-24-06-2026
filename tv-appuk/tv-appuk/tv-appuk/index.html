@@ -14,6 +14,12 @@
   </head>
   <body>
     <div id="root"></div>
+    <script>
+      (function() {
+        var match = navigator.userAgent.match(/Chrome\/(\d+)/);
+        window.isLegacyTv = match && parseInt(match[1], 10) < 84;
+      })();
+    </script>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

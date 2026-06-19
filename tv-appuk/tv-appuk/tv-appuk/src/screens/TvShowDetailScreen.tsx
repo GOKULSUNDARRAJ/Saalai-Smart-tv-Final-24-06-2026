@@ -88,7 +88,8 @@ function EpisodeCard({
           overflow: 'hidden',
           background: '#1a1a1a',
           position: 'relative',
-          outline: showActiveBorder ? `3px solid ${borderColor}` : '3px solid transparent',
+          outline: (window as any).isLegacyTv ? 'none' : (showActiveBorder ? `3px solid ${borderColor}` : '3px solid transparent'),
+        boxShadow: (window as any).isLegacyTv && showActiveBorder ? `0 0 0 3px #0a0a0a, 0 0 0 6px ${borderColor}` : 'none',
           outlineOffset: 2,
           transition: 'outline-color 0.15s',
         }}
