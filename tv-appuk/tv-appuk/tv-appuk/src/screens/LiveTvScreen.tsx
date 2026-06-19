@@ -217,7 +217,7 @@ export function LiveTvScreen() {
           style={{ flex: 1, overflowY: 'auto', overflowX: 'hidden' }}
           className="scrollbar-hide"
         >
-          <div style={{ paddingLeft: 'calc(5vw + 10px)', paddingRight: 'calc(5vw + 10px)', paddingTop: 16, paddingBottom: 32 }}>
+          <div style={{ paddingLeft: '5vw', paddingRight: '5vw', paddingTop: 16, paddingBottom: 32 }}>
             {loading ? (
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '30vh', color: 'rgba(255,255,255,0.4)', fontSize: 14 }}>
                 Loading…
@@ -231,7 +231,7 @@ export function LiveTvScreen() {
                 {Array.from({ length: rows }).map((_, rowIdx) => {
                   const rowItems = channels.slice(rowIdx * COLS, (rowIdx + 1) * COLS)
                   return (
-                    <div key={rowIdx} style={{ display: 'flex', gap: 28, marginBottom: 28 }}>
+                    <div key={rowIdx} style={{ display: 'flex', gap: 36, marginBottom: 32 }}>
                       {rowItems.map((item, colIdx) => (
                         <ChannelCard
                           key={item.id}
