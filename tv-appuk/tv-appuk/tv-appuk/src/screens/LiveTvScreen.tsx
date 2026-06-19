@@ -55,19 +55,8 @@ function ChannelCard({
   }, [focused])
 
   return (
-    <div style={{ flex: 1, position: 'relative', aspectRatio: '16/9' }}>
-      {/* Universal Focus Ring */}
-      <div style={{
-        position: 'absolute',
-        top: -6, left: -6, right: -6, bottom: -6,
-        borderRadius: 18,
-        border: focused ? '3px solid #e50914' : '3px solid transparent',
-        pointerEvents: 'none',
-        zIndex: 10,
-        transition: 'border-color 0.12s',
-      }} />
-
-      {/* The actual card */}
+    <div style={{ flex: 1, aspectRatio: '16/9', position: 'relative' }}>
+      {/* The actual card with focus ring drawn as border inside */}
       <div
         ref={mergedRef}
         onClick={onSelect}
@@ -77,9 +66,8 @@ function ChannelCard({
           borderRadius: 12,
           overflow: 'hidden',
           position: 'relative',
-          transform: focused ? 'scale(1.06)' : 'scale(1)',
-          transition: 'transform 0.15s',
-          zIndex: focused ? 10 : 1,
+          border: focused ? '3px solid #e50914' : '3px solid transparent',
+          transition: 'border-color 0.12s',
           background: '#1a1a1a',
           cursor: 'pointer',
         }}
@@ -231,7 +219,7 @@ export function LiveTvScreen() {
                 {Array.from({ length: rows }).map((_, rowIdx) => {
                   const rowItems = channels.slice(rowIdx * COLS, (rowIdx + 1) * COLS)
                   return (
-                    <div key={rowIdx} style={{ display: 'flex', gap: 36, marginBottom: 32 }}>
+                    <div key={rowIdx} style={{ display: 'flex', gap: 20, marginBottom: 20 }}>
                       {rowItems.map((item, colIdx) => (
                         <ChannelCard
                           key={item.id}
