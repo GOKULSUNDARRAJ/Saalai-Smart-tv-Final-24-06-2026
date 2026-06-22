@@ -348,7 +348,7 @@ export function SearchScreen() {
 
   const handleSelect = useCallback(async (item: SearchItem, type: 'channel' | 'movie' | 'show') => {
     if (type === 'channel') {
-      const launched = await playNative(item.channelURL ?? '', item.channelName)
+      const launched = await playNative(item.channelURL ?? '', item.channelName, undefined, true)
       if (!launched && !shouldUseNativePlayer()) {
         navigate('player', {
           id: `livetv-${item.channelId}`,
