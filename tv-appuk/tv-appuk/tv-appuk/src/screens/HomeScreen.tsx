@@ -4,6 +4,7 @@ import { ContentRow } from '../components/ui/ContentRow'
 import { fetchDashboard } from '../api/dashboardApi'
 import { useAppStore } from '../store/appStore'
 import { playNative, shouldUseNativePlayer } from '../platform/nativeVideoPlayer'
+import { tvStorage } from '../platform/storage'
 import type { PlaylistItem } from '../store/appStore'
 import type { ContentItem, ContentRow as ContentRowType } from '../types/content'
 
@@ -34,7 +35,13 @@ export function HomeScreen() {
   const [loading, setLoading] = useState(!initialCache)
   const [firstRowItem, setFirstRowItem] = useState<ContentItem | null>(null)
   const [isFirstRowFocused, setIsFirstRowFocused] = useState(true)
-  const [banners, setBanners] = useState<string[]>([])
+  const [banners, setBanners] = useState<string[]>(() => {
+    try {
+      const cached = tvStorage.getItem('dashboard_banners')
+      if (cached) return JSON.parse(cached)
+    } catch {}
+    return []
+  })
   const [bannerIdx, setBannerIdx] = useState(0)
 
   useEffect(() => {
@@ -89,6 +96,7 @@ export function HomeScreen() {
         setRows(data.rows)
         if (data.banners && data.banners.length > 0) {
           setBanners(data.banners)
+          tvStorage.setItem('dashboard_banners', JSON.stringify(data.banners))
         }
         if (data.rows.length > 0) {
           const firstKey = `card-row-${data.rows[0].id}-0`
