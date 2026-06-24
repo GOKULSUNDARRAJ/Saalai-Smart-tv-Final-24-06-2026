@@ -1,3 +1,4 @@
+import { BASE_URL } from '../api/apiUtils';
 export interface RegisterParams {
   name: string
   userCountry: string
@@ -57,7 +58,7 @@ export async function registerUser(params: RegisterParams): Promise<RegisterResp
   body.append('device_token', params.device_token)
   body.append('referalCode', params.referalCode ?? '')
 
-  const res = await fetch('https://staging.saalai.tv/saalai_app/checkRegister', {
+  const res = await fetch(BASE_URL + '/checkRegister', {
     method: 'POST',
     body,
   })
@@ -100,7 +101,7 @@ export async function getMyProfile(): Promise<ProfileResponse | null> {
   const token = tvStorage.getItem('tv_access_token') ?? ''
   if (!token || !token.includes('.')) return null
   try {
-    const res = await fetch('https://staging.saalai.tv/saalai_app/secure/getMyProfile', {
+    const res = await fetch(BASE_URL + '/secure/getMyProfile', {
       method: 'POST',
       headers: { Authorization: token },
     })
@@ -127,7 +128,7 @@ export interface VersionResponse {
 
 export async function getTVVersion(): Promise<VersionResponse | null> {
   try {
-    const res = await fetch('https://staging.saalai.tv/saalai_app/getTVVersion', {
+    const res = await fetch(BASE_URL + '/getTVVersion', {
       method: 'POST'
     })
     if (!res.ok) return null

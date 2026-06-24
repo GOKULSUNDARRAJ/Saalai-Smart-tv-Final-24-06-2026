@@ -1,3 +1,4 @@
+import { BASE_URL } from '../api/apiUtils';
 import { useEffect, useRef, useState } from 'react'
 import { useAppStore } from '../store/appStore'
 import { mapKeyEvent, TVKey } from '../platform/keys'
@@ -34,7 +35,7 @@ export function ActivationScreen() {
         try {
           const formData = new FormData()
           formData.append('token', deviceId)
-          const res = await fetch('https://staging.saalai.tv/saalai_app/QRCode', {
+          const res = await fetch(BASE_URL + '/QRCode', {
             method: 'POST',
             body: formData,
           })

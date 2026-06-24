@@ -1,3 +1,4 @@
+import { BASE_URL } from '../api/apiUtils';
 import { tvStorage } from '../platform/storage'
 import { checkAccessDenied } from './apiUtils'
 
@@ -20,7 +21,7 @@ export async function searchProgram(keyword: string): Promise<SearchResponse> {
   if (!token || !token.includes('.') || !keyword.trim()) return empty
   try {
     const body = new URLSearchParams({ keyword: keyword.trim() })
-    const res = await fetch('https://staging.saalai.tv/saalai_app/secure/searchProgram', {
+    const res = await fetch(BASE_URL + '/secure/searchProgram', {
       method: 'POST',
       headers: {
         Authorization: token,

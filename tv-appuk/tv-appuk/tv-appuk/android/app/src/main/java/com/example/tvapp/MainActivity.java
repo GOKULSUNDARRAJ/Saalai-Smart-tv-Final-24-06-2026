@@ -15,6 +15,16 @@ public class MainActivity extends BridgeActivity {
         public void exit() {
             runOnUiThread(() -> finishAffinity());
         }
+
+        @JavascriptInterface
+        public void openTvSettings() {
+            try {
+                android.content.Intent intent = new android.content.Intent(android.provider.Settings.ACTION_SETTINGS);
+                startActivity(intent);
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }
     }
 
     @Override

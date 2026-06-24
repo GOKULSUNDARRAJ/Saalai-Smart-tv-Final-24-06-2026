@@ -307,6 +307,7 @@ export function SettingsScreen() {
         { id: 'account-email',   label: 'Email',             value: profile?.userEmail || '-', icon: '✉' },
         { id: 'account-expire',  label: 'Subscription Ends', value: profile?.expireDate || '-', icon: '★' },
         { id: 'account-logout',  label: 'Sign Out',          value: '',           icon: '⎋', action: true },
+        { id: 'account-contactus', label: 'Contact Support', value: '',           icon: '📞', action: true },
       ],
     },
     {
@@ -321,6 +322,10 @@ export function SettingsScreen() {
   const allItems = sections.flatMap(s => s.items)
 
   const handleActivate = useCallback((id: string) => {
+    if (id === 'account-contactus') {
+      navigate('contactus')
+      return
+    }
     if (id === 'account-logout') {
       dialogTypeRef.current = 'logout'
       setDialog({ type: 'logout' })
@@ -395,12 +400,10 @@ export function SettingsScreen() {
           paddingTop: 'clamp(14px, 2.5vh, 28px)',
           paddingBottom: 'clamp(8px, 1.5vh, 12px)',
         }}>
-          <h1 className="text-tv-3xl font-bold text-white leading-tight">⚙ Settings</h1>
-          <p style={{ color: 'rgba(255,255,255,0.45)', fontSize: '13px', marginTop: '4px', marginBottom: '12px' }}>
+          <p style={{ color: 'rgba(255,255,255,0.45)', fontSize: '20px', marginTop: '4px', marginBottom: '12px' }}>
             App preferences and account
           </p>
         </div>
-
         <div style={{ paddingLeft: '5vw', paddingRight: '5vw', paddingBottom: '64px' }}>
           {sections.map((section, si) => {
             const sectionStartIdx = sections.slice(0, si).reduce((n, s) => n + s.items.length, 0)

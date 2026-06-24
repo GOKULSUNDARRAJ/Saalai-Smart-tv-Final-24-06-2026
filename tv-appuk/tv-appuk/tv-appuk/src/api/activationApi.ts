@@ -1,3 +1,4 @@
+import { BASE_URL } from '../api/apiUtils';
 import { tvStorage } from '../platform/storage'
 
 const DEVICE_ID_KEY = 'tv_device_id'
@@ -29,7 +30,7 @@ export async function callActivationApi(activationCode: string): Promise<Activat
   })
 
   try {
-    const res = await fetch('https://staging.saalai.tv/saalai_app/sendActivationCode', {
+    const res = await fetch(BASE_URL + '/sendActivationCode', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body,

@@ -1,3 +1,4 @@
+import { BASE_URL } from '../api/apiUtils';
 import { tvStorage } from '../platform/storage'
 import { checkAccessDenied } from './apiUtils'
 
@@ -42,7 +43,7 @@ export async function fetchMovieDashboard(): Promise<MovieDashboard> {
   const empty: MovieDashboard = { banners: [], categories: [], channelsByCategory: {} }
   if (!token || !token.includes('.')) return empty
   try {
-    const res = await fetch('https://staging.saalai.tv/saalai_app/secure/getMovieDashboadList', {
+    const res = await fetch(BASE_URL + '/secure/getMovieDashboadList', {
       method: 'POST',
       headers: { Authorization: token },
     })
@@ -94,7 +95,7 @@ export async function fetchCategoryMovies(categoryId: number, page: number, coun
       offset: String(page),
       count: String(count),
     })
-    const res = await fetch('https://staging.saalai.tv/saalai_app/secure/getCategoryMovieList', {
+    const res = await fetch(BASE_URL + '/secure/getCategoryMovieList', {
       method: 'POST',
       headers: {
         Authorization: token,
@@ -120,7 +121,7 @@ export async function fetchMovieDetails(channelId: number): Promise<MovieDetail 
   if (!token || !token.includes('.')) return null
   try {
     const body = new URLSearchParams({ channelId: String(channelId) })
-    const res = await fetch('https://staging.saalai.tv/saalai_app/secure/getMovieDetails', {
+    const res = await fetch(BASE_URL + '/secure/getMovieDetails', {
       method: 'POST',
       headers: {
         Authorization: token,
@@ -177,7 +178,7 @@ export async function updateStreamTime(channelId: number, type: number, position
   if (!token || !token.includes('.') || positionMs <= 0) return
   const time = msToHHMMSS(positionMs)
   try {
-    await fetch('https://staging.saalai.tv/saalai_app/secure/updateStreamTime', {
+    await fetch(BASE_URL + '/secure/updateStreamTime', {
       method: 'POST',
       headers: {
         authorization: token,

@@ -1,7 +1,6 @@
+import { BASE_URL } from '../api/apiUtils';
 import { tvStorage } from '../platform/storage'
 import { checkAccessDenied } from './apiUtils'
-
-const BASE_URL = 'https://staging.saalai.tv/saalai_app'
 
 export interface ContactEntry {
   country: string

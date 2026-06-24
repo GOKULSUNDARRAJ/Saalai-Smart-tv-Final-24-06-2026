@@ -1,3 +1,4 @@
+import { BASE_URL } from '../api/apiUtils';
 import { tvStorage } from '../platform/storage'
 import { checkAccessDenied } from './apiUtils'
 
@@ -21,7 +22,7 @@ export async function fetchTvShowDashboard(): Promise<TvShowDashboard> {
   const empty: TvShowDashboard = { categories: [] }
   if (!token || !token.includes('.')) return empty
   try {
-    const res = await fetch('https://staging.saalai.tv/saalai_app/secure/getTvShowDashboadList', {
+    const res = await fetch(BASE_URL + '/secure/getTvShowDashboadList', {
       method: 'POST',
       headers: { Authorization: token },
     })
@@ -50,7 +51,7 @@ export async function fetchTvShowList(categoryId: number, offset = 0, count = 10
       offset: String(offset),
       count: String(count),
     })
-    const res = await fetch('https://staging.saalai.tv/saalai_app/secure/getTvShowList', {
+    const res = await fetch(BASE_URL + '/secure/getTvShowList', {
       method: 'POST',
       headers: {
         Authorization: token,
@@ -111,7 +112,7 @@ export async function fetchTvShowEpisodeList(
       offset: String(offset),
       count: String(count),
     })
-    const res = await fetch('https://staging.saalai.tv/saalai_app/secure/getTvShowEpisodeList', {
+    const res = await fetch(BASE_URL + '/secure/getTvShowEpisodeList', {
       method: 'POST',
       headers: {
         Authorization: token,

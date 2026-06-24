@@ -1,3 +1,4 @@
+import { BASE_URL } from '../api/apiUtils';
 import { tvStorage } from '../platform/storage'
 import { checkAccessDenied } from './apiUtils'
 
@@ -27,7 +28,7 @@ export async function fetchCatchupChannelDetails(channelId: number): Promise<Cat
   if (!token || !token.includes('.')) return null
   try {
     const body = new URLSearchParams({ channelId: String(channelId) })
-    const res = await fetch('https://staging.saalai.tv/saalai_app/secure/getCatchupChannelDetails', {
+    const res = await fetch(BASE_URL + '/secure/getCatchupChannelDetails', {
       method: 'POST',
       headers: {
         Authorization: token,
@@ -64,7 +65,7 @@ export async function fetchCatchupChannelList(offset: number, count: number): Pr
   if (!token || !token.includes('.')) return { items: [], total: 0, error: false }
   try {
     const body = new URLSearchParams({ offset: String(offset), count: String(count) })
-    const res = await fetch('https://staging.saalai.tv/saalai_app/secure/getCatchupChannelList', {
+    const res = await fetch(BASE_URL + '/secure/getCatchupChannelList', {
       method: 'POST',
       headers: {
         Authorization: token,

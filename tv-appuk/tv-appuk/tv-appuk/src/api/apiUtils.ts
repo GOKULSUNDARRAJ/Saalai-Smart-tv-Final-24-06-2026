@@ -1,5 +1,5 @@
 import { tvStorage } from '../platform/storage'
-
+export const BASE_URL = import.meta.env.DEV ? '/smartapi_v1' : 'https://thirai.net/smartapi_v1';
 export function checkAccessDenied(data: Record<string, unknown>): boolean {
   if (data?.error === 'access_denied') {
     tvStorage.removeItem('tv_activated')

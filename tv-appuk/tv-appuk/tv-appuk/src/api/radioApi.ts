@@ -1,3 +1,4 @@
+import { BASE_URL } from '../api/apiUtils';
 import { tvStorage } from '../platform/storage'
 import { checkAccessDenied } from './apiUtils'
 
@@ -23,7 +24,7 @@ export async function fetchRadioDetail(channelId: number): Promise<RadioDetailRe
   if (!token || !token.includes('.')) return null
   try {
     const body = new URLSearchParams({ offset: '0', count: '20', channelId: String(channelId) })
-    const res = await fetch('https://staging.saalai.tv/saalai_app/secure/getRadioList', {
+    const res = await fetch(BASE_URL + '/secure/getRadioList', {
       method: 'POST',
       headers: {
         Authorization: token,
@@ -50,7 +51,7 @@ export async function fetchRadioList(offset: number, count: number): Promise<Rad
   if (!token || !token.includes('.')) return { items: [], error: false }
   try {
     const body = new URLSearchParams({ offset: String(offset), count: String(count), channelId: '' })
-    const res = await fetch('https://staging.saalai.tv/saalai_app/secure/getRadioList', {
+    const res = await fetch(BASE_URL + '/secure/getRadioList', {
       method: 'POST',
       headers: {
         Authorization: token,

@@ -1,3 +1,4 @@
+import { BASE_URL } from '../api/apiUtils';
 import type { Screen } from '../types/content'
 import { tvStorage } from '../platform/storage'
 import { checkAccessDenied } from './apiUtils'
@@ -24,13 +25,13 @@ const SCREEN_MAP: Record<string, Screen> = {
 }
 
 const FALLBACK_MENU: MenuItem[] = [
-  { id: 1,  name: 'All',      activeIcon: 'https://staging.saalai.tv/saalai_app/icon/all_white.png',        inactiveIcon: 'https://staging.saalai.tv/saalai_app/icon/all.png',             screen: 'home' },
-  { id: 2,  name: 'Live Tv',  activeIcon: 'https://staging.saalai.tv/saalai_app/icon/livetv_active.png',    inactiveIcon: 'https://staging.saalai.tv/saalai_app/icon/livetv.png',          screen: 'livetv' },
-  { id: 3,  name: 'Movies',   activeIcon: 'https://staging.saalai.tv/saalai_app/icon/movies_selected.png',  inactiveIcon: 'https://staging.saalai.tv/saalai_app/icon/movies_unselected.png',screen: 'movies' },
-  { id: 4,  name: 'Tv Shows', activeIcon: 'https://staging.saalai.tv/saalai_app/icon/tv_shows_active.png',  inactiveIcon: 'https://staging.saalai.tv/saalai_app/icon/tv_shows.png',        screen: 'tvshows' },
-  { id: 5,  name: 'Catch Up', activeIcon: 'https://staging.saalai.tv/saalai_app/icon/catchup_active.png',   inactiveIcon: 'https://staging.saalai.tv/saalai_app/icon/catchup.png',         screen: 'catchup' },
-  { id: 102, name: 'Radio',   activeIcon: 'https://staging.saalai.tv/saalai_app/icon/radio_selected.png',   inactiveIcon: 'https://staging.saalai.tv/saalai_app/icon/radio_unselected.png',screen: 'radio' },
-  { id: 103, name: 'Profile', activeIcon: 'https://staging.saalai.tv/saalai_app/icon/profileSelected.png',  inactiveIcon: 'https://staging.saalai.tv/saalai_app/icon/profileInActive.png', screen: 'settings' },
+  { id: 1,  name: 'All',      activeIcon: BASE_URL + '/icon/all_white.png',        inactiveIcon: BASE_URL + '/icon/all.png',             screen: 'home' },
+  { id: 2,  name: 'Live Tv',  activeIcon: BASE_URL + '/icon/livetv_active.png',    inactiveIcon: BASE_URL + '/icon/livetv.png',          screen: 'livetv' },
+  { id: 3,  name: 'Movies',   activeIcon: BASE_URL + '/icon/movies_selected.png',  inactiveIcon: BASE_URL + '/icon/movies_unselected.png',screen: 'movies' },
+  { id: 4,  name: 'Tv Shows', activeIcon: BASE_URL + '/icon/tv_shows_active.png',  inactiveIcon: BASE_URL + '/icon/tv_shows.png',        screen: 'tvshows' },
+  { id: 5,  name: 'Catch Up', activeIcon: BASE_URL + '/icon/catchup_active.png',   inactiveIcon: BASE_URL + '/icon/catchup.png',         screen: 'catchup' },
+  { id: 102, name: 'Radio',   activeIcon: BASE_URL + '/icon/radio_selected.png',   inactiveIcon: BASE_URL + '/icon/radio_unselected.png',screen: 'radio' },
+  { id: 103, name: 'Profile', activeIcon: BASE_URL + '/icon/profileSelected.png',  inactiveIcon: BASE_URL + '/icon/profileInActive.png', screen: 'settings' },
 ]
 
 function clearBadToken(): void {
@@ -46,7 +47,7 @@ export async function fetchMenuItems(): Promise<MenuItem[]> {
   const token = tvStorage.getItem('tv_access_token') ?? ''
   if (!token) return getCachedMenu()
   try {
-    const res = await fetch('https://staging.saalai.tv/saalai_app/secure/tvMenuList', {
+    const res = await fetch(BASE_URL + '/secure/tvMenuList', {
       method: 'POST',
       headers: { Authorization: token },
     })

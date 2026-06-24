@@ -1,3 +1,4 @@
+import { BASE_URL } from '../api/apiUtils';
 import { tvStorage } from '../platform/storage'
 import type { ContentItem, ContentRow } from '../types/content'
 import { checkAccessDenied } from './apiUtils'
@@ -48,7 +49,7 @@ export async function fetchDashboard(): Promise<DashboardData | null> {
   const token = tvStorage.getItem('tv_access_token') ?? ''
   if (!token || !token.includes('.')) return null
   try {
-    const res = await fetch('https://staging.saalai.tv/saalai_app/secure/getDashboardList', {
+    const res = await fetch(BASE_URL + '/secure/getDashboardList', {
       method: 'POST',
       headers: { Authorization: token },
     })

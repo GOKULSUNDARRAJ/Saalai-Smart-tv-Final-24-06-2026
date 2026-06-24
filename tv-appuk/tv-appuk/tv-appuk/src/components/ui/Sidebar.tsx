@@ -109,7 +109,7 @@ function ProfileNavItem({ onSelect, isActive }: { onSelect: () => void; isActive
       if (dir === 'up') return false
       if (dir === 'down') { setFocus(SCREEN_FIRST_FOCUS[currentScreen] ?? 'hero-play'); return false }
       if (dir === 'left') return true
-      if (dir === 'right') return false
+      if (dir === 'right') { setFocus('nav-tv-settings'); return false }
       return true
     },
   })
@@ -142,6 +142,55 @@ function ProfileNavItem({ onSelect, isActive }: { onSelect: () => void; isActive
         <path d="M4 20c0-4 3.6-7 8-7s8 3 8 7" />
       </svg>
       <span style={{ fontSize: 13, fontWeight: 600, letterSpacing: 0.2 }}>Profile</span>
+    </button>
+  )
+}
+
+function TvSettingsNavItem({ onSelect, isActive }: { onSelect: () => void; isActive: boolean }) {
+  const onSelectRef = useRef(onSelect)
+  onSelectRef.current = onSelect
+  const currentScreen = useAppStore((s) => s.currentScreen)
+  const { ref, focused, setFocus } = useFocusable({
+    focusKey: 'nav-tv-settings',
+    onEnterPress: () => onSelectRef.current(),
+    onArrowPress: (dir) => {
+      if (dir === 'up') return false
+      if (dir === 'down') { setFocus(SCREEN_FIRST_FOCUS[currentScreen] ?? 'hero-play'); return false }
+      if (dir === 'left') { setFocus('nav-profile'); return false }
+      if (dir === 'right') return false
+      return true
+    },
+  })
+
+  return (
+    <button
+      ref={ref}
+      onClick={() => onSelectRef.current()}
+      style={{
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        borderRadius: 999,
+        border: 'none',
+        cursor: 'pointer',
+        backgroundColor: focused
+          ? '#e50914'
+          : isActive
+          ? 'rgba(229,9,20,0.25)'
+          : 'transparent',
+        color: focused ? '#fff' : isActive ? '#fff' : 'rgba(255,255,255,0.75)',
+        width: 32,
+        height: 32,
+        transition: 'background-color 0.15s, color 0.15s',
+        flexShrink: 0,
+        outline: 'none',
+        marginLeft: 4,
+      }}
+    >
+      <svg viewBox="0 0 24 24" style={{ width: 18, height: 18, fill: 'none', stroke: '#fff', strokeWidth: 2 }}>
+        <path d="M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z" />
+        <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1Z" />
+      </svg>
     </button>
   )
 }
@@ -503,6 +552,14 @@ export function Sidebar() {
           <ProfileNavItem
             onSelect={() => handleSelect('settings')}
             isActive={currentScreen === 'settings'}
+          />
+          <TvSettingsNavItem
+            onSelect={() => {
+              if ((window as any).AndroidNative && (window as any).AndroidNative.openTvSettings) {
+                (window as any).AndroidNative.openTvSettings()
+              }
+            }}
+            isActive={false}
           />
         </div>
       </header>

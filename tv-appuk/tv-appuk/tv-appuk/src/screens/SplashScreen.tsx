@@ -49,38 +49,44 @@ export function SplashScreen({ onDone }: Props) {
   }
 
   const iconStyle: React.CSSProperties = {
-    width: '96px',
-    height: '96px',
-    background: '#E8232A',
-    borderRadius: '22px',
+    width: '240px',
+    height: '240px',
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: '20px',
-    boxShadow: '0 0 60px rgba(232,35,42,0.4)',
+  }
+
+  const logoImgStyle: React.CSSProperties = {
+    width: '100%',
+    height: '100%',
+    objectFit: 'contain',
   }
 
   const titleStyle: React.CSSProperties = {
-    fontFamily: "'Bebas Neue', cursive",
-    fontSize: '52px',
-    letterSpacing: '6px',
+    fontSize: '48px',
+    fontWeight: 'bold',
+    letterSpacing: '4px',
     color: '#fff',
-    lineHeight: 1,
+    marginBottom: '8px',
+    textShadow: '0 4px 12px rgba(0,0,0,0.5)',
+  }
+
+  const highlightStyle: React.CSSProperties = {
+    color: '#D4AF37', // Metallic gold instead of bright yellow
   }
 
   const taglineStyle: React.CSSProperties = {
-    fontFamily: "'DM Sans', sans-serif",
-    fontSize: '13px',
-    letterSpacing: '4px',
-    color: 'rgba(255,255,255,0.4)',
+    fontSize: '14px',
+    letterSpacing: '6px',
+    color: '#888',
     textTransform: 'uppercase',
-    marginTop: '8px',
+    marginBottom: '40px',
   }
 
   const dotsStyle: React.CSSProperties = {
     display: 'flex',
     gap: '8px',
-    marginTop: '48px',
     opacity: phase === 'hold' ? 1 : 0,
     transition: 'opacity 0.4s ease',
   }
@@ -89,15 +95,9 @@ export function SplashScreen({ onDone }: Props) {
     <div style={containerStyle}>
       <div style={logoWrapStyle}>
         <div style={iconStyle}>
-          <svg viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg" style={{ width: '54px', height: '54px', fill: '#fff' }}>
-            <rect x="2" y="5" width="28" height="20" rx="3" />
-            <rect x="11" y="26" width="10" height="2" rx="1" />
-            <polygon points="13,10 13,22 23,16" fill="#E8232A" />
-          </svg>
+          <img src="/splash_logo.png" alt="Saalai TV" style={logoImgStyle} />
         </div>
-        <div style={titleStyle}>
-          SAALAI <span style={{ color: '#E8232A' }}>TV</span>
-        </div>
+        <div style={titleStyle}>SAALAI <span style={highlightStyle}>TV</span></div>
         <div style={taglineStyle}>Stream · Discover · Enjoy</div>
         <div style={dotsStyle}>
           {[0, 1, 2].map((i) => (
