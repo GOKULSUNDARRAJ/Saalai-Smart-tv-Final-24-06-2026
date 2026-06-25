@@ -63,10 +63,10 @@ function ViewMoreCard({ focusKey, width, height, onSelect, onUp, onDown }: {
   )
 }
 
-const BASE_W = Math.round(Math.max(140, Math.min(window.innerWidth * 0.17, 280)))
+const BASE_W = Math.round(Math.max(140, Math.min(960 * 0.17, 280)))
 const LANDSCAPE_W = BASE_W
 const LANDSCAPE_H = Math.round(BASE_W * 9 / 16)
-const PORTRAIT_W = Math.round(Math.max(110, Math.min(window.innerWidth * 0.115, 190)))
+const PORTRAIT_W = Math.round(Math.max(110, Math.min(960 * 0.115, 190)))
 const PORTRAIT_H = Math.round(PORTRAIT_W * 3 / 2)
 
 export function ContentRow({ row, onSelect, onItemFocused, focusKey, onUp, onDown, cardAspect = 'landscape', showLiveBadge = false, hideTextOverlay = false, onViewMore, isFirstRow = false }: ContentRowProps) {
@@ -97,10 +97,12 @@ export function ContentRow({ row, onSelect, onItemFocused, focusKey, onUp, onDow
   const handleCardFocus = useCallback((cardEl: HTMLElement | null) => {
     if (!cardEl || !horizontalScrollRef.current) return
     const container = horizontalScrollRef.current
+
+    // Calculate position
     const containerRect = container.getBoundingClientRect()
     const cardRect = cardEl.getBoundingClientRect()
     const cardLeft = container.scrollLeft + (cardRect.left - containerRect.left)
-    const leftPadding = window.innerWidth * 0.05
+    const leftPadding = 960 * 0.05
     if (cardRect.right > containerRect.right) {
       container.scrollTo({ left: Math.max(0, cardLeft - leftPadding), behavior: 'smooth' })
     } else if (cardRect.left < containerRect.left) {
@@ -117,8 +119,8 @@ export function ContentRow({ row, onSelect, onItemFocused, focusKey, onUp, onDow
             fontWeight: isRowFocused ? 800 : 600,
             letterSpacing: 0.3,
             marginBottom: 10,
-            paddingLeft: '5vw',
-            paddingRight: '5vw',
+            paddingLeft: 48,
+            paddingRight: 48,
             transition: 'all 0.2s ease-in-out',
             color: isRowFocused ? '#fff' : 'rgba(255,255,255,0.45)',
           }}>
@@ -129,7 +131,7 @@ export function ContentRow({ row, onSelect, onItemFocused, focusKey, onUp, onDow
             className="scrollbar-hide"
             style={{
               display: 'flex',
-              paddingLeft: '5vw', paddingRight: '5vw',
+              paddingLeft: 48, paddingRight: 48,
               paddingTop: 8, paddingBottom: 12,
               overflowX: 'auto',
             }}

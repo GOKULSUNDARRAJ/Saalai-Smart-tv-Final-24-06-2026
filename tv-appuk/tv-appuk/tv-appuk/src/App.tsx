@@ -139,7 +139,7 @@ export function App() {
 
   return (
     <FocusContext.Provider value={focusKey}>
-      <div ref={ref} className="w-screen h-screen bg-tv-bg" style={{ position: 'relative', ...(isTizenPlayerOpen ? { background: 'transparent' } : {}) }}>
+      <div ref={ref} className="w-full h-full bg-tv-bg" style={{ position: 'relative', ...(isTizenPlayerOpen ? { background: 'transparent' } : {}) }}>
         {showSplash && <SplashScreen onDone={handleSplashDone} />}
         {isActivation ? (
           <ActivationScreen />

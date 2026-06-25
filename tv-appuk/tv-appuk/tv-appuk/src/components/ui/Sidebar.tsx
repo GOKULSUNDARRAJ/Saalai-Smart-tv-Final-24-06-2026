@@ -76,6 +76,7 @@ function TopNavItem({ item, index, total, isActive, onSelect }: NavItemProps) {
         padding: '6px 12px',
         transition: 'background-color 0.15s, color 0.15s',
         flexShrink: 0,
+        minWidth: 'max-content',
         outline: 'none',
         marginRight: 2,
       }}
@@ -486,8 +487,8 @@ export function Sidebar() {
           height: 60,
           display: 'flex',
           alignItems: 'center',
-          paddingLeft: '3vw',
-          paddingRight: '3vw',
+          paddingLeft: 24,
+          paddingRight: 24,
           paddingTop: 20,
           flexShrink: 0,
           background: 'transparent',
@@ -519,6 +520,7 @@ export function Sidebar() {
             borderRadius: 999,
             padding: '4px 6px',
             flexShrink: 0,
+            minWidth: 'max-content',
             marginRight: 16,
           }}
         >

@@ -42,7 +42,7 @@
 
 @layer components {
   .tv-safe {
-    padding: 5vh 5vw;
+    padding: 27px 48px;
   }
 
   .tv-focus-ring {
@@ -60,7 +60,7 @@
 
   .tv-btn {
     @apply bg-tv-surface text-tv-text rounded-md text-tv-base font-semibold transition-all duration-150 cursor-pointer;
-    padding: clamp(8px, 1vh, 16px) clamp(16px, 2vw, 32px);
+    padding: 8px 24px;
   }
 
   .tv-btn:focus,

@@ -2,19 +2,35 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=1920, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
     <title>Saalai TV</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@500&display=swap" rel="stylesheet">
     <style>
       * { box-sizing: border-box; margin: 0; padding: 0; }
-      html, body, #root { width: 100%; height: 100%; overflow: hidden; background: #0a0a0a; }
+      html, body { width: 100%; height: 100%; overflow: hidden; background: #0a0a0a; margin: 0; padding: 0; }
+      #root { width: 960px; height: 540px; overflow: hidden; transform-origin: top left; position: absolute; top: 0; left: 0; }
     </style>
   </head>
   <body>
     <div id="root"></div>
-
+    <script>
+      (function() {
+        function scaleApp() {
+          var sw = window.innerWidth;
+          var sh = window.innerHeight;
+          var scale = Math.min(sw / 960, sh / 540);
+          var root = document.getElementById('root');
+          if (root) {
+            root.style.transform = 'scale(' + scale + ')';
+          }
+        }
+        window.addEventListener('DOMContentLoaded', scaleApp);
+        window.addEventListener('resize', scaleApp);
+        scaleApp();
+      })();
+    </script>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

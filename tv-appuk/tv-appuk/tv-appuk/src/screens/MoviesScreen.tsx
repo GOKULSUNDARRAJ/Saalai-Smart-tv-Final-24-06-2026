@@ -463,8 +463,8 @@ function MovieDashboardRow({
     const containerRect = container.getBoundingClientRect()
     const absoluteLeft = eRect.left - containerRect.left + container.scrollLeft
     const absoluteRight = absoluteLeft + eRect.width
-    const leftPadding = window.innerWidth * 0.05
-    const rightPadding = window.innerWidth * 0.05
+    const leftPadding = 960 * 0.05
+    const rightPadding = 960 * 0.05
     if (eRect.right > containerRect.right) {
       container.scrollTo({ left: Math.max(0, absoluteRight - containerRect.width + rightPadding), behavior: 'smooth' })
     } else if (eRect.left < containerRect.left) {
